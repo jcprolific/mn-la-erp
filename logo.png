@@ -1,0 +1,620 @@
+<style>
+  :root {
+    --bg: #0a0a08;
+    --surface: #111110;
+    --border: #2a2a24;
+    --accent: #c8b87a;
+    --accent-dim: #8a7d4f;
+    --text: #d4cebc;
+    --text-muted: #7a7468;
+    --white: #ede8db;
+  }
+
+  #kk-enroll * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #kk-enroll {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  #kk-enroll::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #kk-enroll .kk-enroll-wrapper {
+    max-width: 580px;
+    margin: 0 auto;
+    padding: 72px 32px 100px;
+    position: relative;
+    z-index: 1;
+  }
+
+  #kk-enroll .kk-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    text-decoration: none;
+    margin-bottom: 48px;
+    transition: color 0.2s;
+  }
+  #kk-enroll .kk-back:hover { color: var(--accent); }
+  #kk-enroll .kk-back::before { content: '←'; font-size: 14px; }
+
+  #kk-enroll .kk-enroll-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.45em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: kkFadeUp 0.8s ease 0.1s both;
+  }
+  #kk-enroll .kk-enroll-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 28px; height: 1px;
+    background: var(--accent-dim);
+    flex-shrink: 0;
+  }
+
+  #kk-enroll .kk-enroll-title {
+    font-family: 'Special Elite', serif !important;
+    font-size: clamp(2rem, 5vw, 3rem) !important;
+    color: var(--white) !important;
+    font-weight: normal !important;
+    line-height: 1.15;
+    margin-bottom: 10px;
+    animation: kkFadeUp 0.8s ease 0.2s both;
+  }
+  #kk-enroll .kk-enroll-title span { color: var(--accent); }
+
+  #kk-enroll .kk-enroll-dash {
+    width: 40px; height: 2px;
+    background: var(--accent);
+    margin: 22px 0 20px;
+    opacity: 0.7;
+    animation: kkFadeUp 0.8s ease 0.25s both;
+  }
+
+  #kk-enroll .kk-enroll-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    margin-bottom: 44px;
+    animation: kkFadeUp 0.8s ease 0.3s both;
+  }
+
+  #kk-enroll .kk-enroll-form {
+    animation: kkFadeUp 0.8s ease 0.4s both;
+  }
+
+  #kk-enroll .kk-field { margin-bottom: 28px; }
+
+  #kk-enroll .kk-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 9px;
+  }
+  #kk-enroll .kk-label .req { color: var(--accent); margin-left: 2px; }
+  #kk-enroll .kk-label .opt { color: var(--text-muted); font-size: 9px; margin-left: 6px; letter-spacing: 0.2em; }
+
+  #kk-enroll .kk-input {
+    display: block;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: 1px solid var(--accent-dim);
+    color: var(--text) !important;
+    font-family: 'Courier Prime', monospace !important;
+    font-size: 15px;
+    padding: 13px 15px;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    border-radius: 0;
+    -webkit-appearance: none;
+  }
+  #kk-enroll .kk-input:focus {
+    border-color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: #141412;
+    color: var(--white) !important;
+  }
+  #kk-enroll .kk-input::placeholder {
+    color: #3a3830;
+    font-family: 'Courier Prime', monospace;
+  }
+
+  #kk-enroll .kk-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 7px;
+    line-height: 1.6;
+    opacity: 0.8;
+  }
+
+  #kk-enroll .kk-form-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 36px 0;
+    position: relative;
+  }
+  #kk-enroll .kk-form-divider::after {
+    content: '✦';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg);
+    padding: 0 12px;
+    color: var(--accent-dim);
+    font-size: 9px;
+  }
+
+  #kk-enroll .kk-price-reminder {
+    text-align: center;
+    padding: 28px 24px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  #kk-enroll .kk-price-reminder::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent), transparent);
+  }
+  #kk-enroll .kk-reminder-label {
+    font-size: 9px;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 8px;
+  }
+  #kk-enroll .kk-reminder-price {
+    font-family: 'Special Elite', serif !important;
+    font-size: 36px !important;
+    color: var(--white) !important;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  #kk-enroll .kk-reminder-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+  }
+
+  /* ── DISCLAIMER ── */
+  #kk-enroll .kk-disclaimer {
+    border: 1px solid rgba(200, 184, 122, 0.18);
+    border-left: 3px solid var(--accent-dim);
+    background: rgba(200, 184, 122, 0.04);
+    padding: 22px 24px;
+    margin-bottom: 24px;
+  }
+  #kk-enroll .kk-disclaimer-header {
+    font-size: 9px;
+    letter-spacing: 0.45em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #kk-enroll .kk-disclaimer-header::before {
+    content: '';
+    display: inline-block;
+    width: 16px; height: 1px;
+    background: var(--accent-dim);
+    flex-shrink: 0;
+  }
+  #kk-enroll .kk-disclaimer-step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 11px;
+  }
+  #kk-enroll .kk-disclaimer-step:last-of-type { margin-bottom: 0; }
+  #kk-enroll .kk-disclaimer-num {
+    font-size: 9px;
+    color: var(--accent-dim);
+    letter-spacing: 0.1em;
+    min-width: 18px;
+    padding-top: 2px;
+    opacity: 0.8;
+  }
+  #kk-enroll .kk-disclaimer-text {
+    font-size: 12px;
+    color: rgba(212, 206, 188, 0.65);
+    line-height: 1.75;
+    letter-spacing: 0.01em;
+  }
+  #kk-enroll .kk-disclaimer-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-style: italic;
+    line-height: 1.65;
+    opacity: 0.75;
+  }
+
+  #kk-enroll .kk-submit {
+    width: 100%;
+    font-family: 'Courier Prime', monospace !important;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--bg) !important;
+    background: var(--accent);
+    border: 2px solid var(--accent);
+    padding: 18px 24px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.25s ease;
+    display: block;
+    margin-top: 8px;
+  }
+  #kk-enroll .kk-submit::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(0,0,0,0.2);
+    pointer-events: none;
+  }
+  #kk-enroll .kk-submit:hover {
+    background: transparent;
+    color: var(--accent) !important;
+  }
+  #kk-enroll .kk-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  #kk-enroll .kk-privacy {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 20px;
+    line-height: 1.7;
+    opacity: 0.7;
+  }
+
+  #kk-enroll .kk-errors {
+    background: rgba(200, 100, 100, 0.08);
+    border: 1px solid rgba(200, 100, 100, 0.25);
+    border-left: 3px solid #c87a7a;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    font-size: 13px;
+    color: #c87a7a;
+    line-height: 1.7;
+  }
+
+  /* ── FAQ SECTION ── */
+  #kk-enroll .kk-faq-section {
+    margin-top: 72px;
+    animation: kkFadeUp 0.8s ease 0.5s both;
+  }
+  #kk-enroll .kk-faq-eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #kk-enroll .kk-faq-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 20px; height: 1px;
+    background: var(--accent-dim);
+    flex-shrink: 0;
+  }
+  #kk-enroll .kk-faq-title {
+    font-family: 'Special Elite', serif !important;
+    font-size: clamp(1.4rem, 3vw, 1.8rem) !important;
+    color: var(--white) !important;
+    font-weight: normal !important;
+    margin-bottom: 32px;
+  }
+
+  #kk-enroll .kk-faq-item {
+    border-top: 1px solid var(--border);
+  }
+  #kk-enroll .kk-faq-item:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+  #kk-enroll .kk-faq-question {
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 20px 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    color: var(--text);
+    letter-spacing: 0.03em;
+    line-height: 1.5;
+    transition: color 0.2s;
+  }
+  #kk-enroll .kk-faq-question:hover { color: var(--white); }
+  #kk-enroll .kk-faq-question.open { color: var(--accent); }
+  #kk-enroll .kk-faq-icon {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    border: 1px solid var(--accent-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    color: var(--accent-dim);
+    transition: all 0.25s ease;
+    line-height: 1;
+  }
+  #kk-enroll .kk-faq-question.open .kk-faq-icon {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    transform: rotate(45deg);
+  }
+  #kk-enroll .kk-faq-answer {
+    display: none;
+    padding: 0 0 22px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+    padding-right: 36px;
+  }
+  #kk-enroll .kk-faq-answer.open { display: block; }
+
+  @keyframes kkFadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 480px) {
+    #kk-enroll .kk-enroll-wrapper { padding: 48px 20px 80px; }
+  }
+</style>
+
+<div id="kk-enroll">
+  <div class="kk-enroll-wrapper">
+
+    <a href="/" class="kk-back">Back to home</a>
+
+    {%- assign mentorship_product = all_products['coldest-method-private-mentorship'] -%}
+
+    {%- form 'contact', id: 'kk-enroll-form' -%}
+
+      {%- if form.posted_successfully? -%}
+        <script>
+          fetch('/cart/clear.js', { method: 'POST' })
+            .then(function() {
+              return fetch('/cart/add.js', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: {{ mentorship_product.variants.first.id }},
+                  quantity: 1
+                })
+              });
+            })
+            .then(function() {
+              window.location.href = '/checkout';
+            })
+            .catch(function() {
+              window.location.href = '/checkout';
+            });
+        </script>
+      {%- endif -%}
+
+      {%- if form.errors -%}
+        <div class="kk-errors">
+          {{ form.errors | default_errors }}
+        </div>
+      {%- endif -%}
+
+      <p class="kk-enroll-eyebrow">Private Mentorship</p>
+      <h1 class="kk-enroll-title">Reserve Your <span>Access.</span></h1>
+      <div class="kk-enroll-dash"></div>
+      <p class="kk-enroll-sub">
+        Fill in your details below. We'll reach out personally to confirm your spot and walk you through the next steps.
+      </p>
+
+      <div class="kk-enroll-form">
+
+        <div class="kk-field">
+          <label class="kk-label" for="kk-e-name">Full Name <span class="req">*</span></label>
+          <input class="kk-input" type="text" id="kk-e-name"
+            name="contact[name]"
+            placeholder="Your full name"
+            value="{{ form.name }}"
+            required autocomplete="name" />
+        </div>
+
+        <div class="kk-field">
+          <label class="kk-label" for="kk-e-email">Email Address <span class="req">*</span></label>
+          <input class="kk-input" type="email" id="kk-e-email"
+            name="contact[email]"
+            placeholder="your@email.com"
+            value="{{ form.email }}"
+            required autocomplete="email" />
+        </div>
+
+        <div class="kk-field">
+          <label class="kk-label" for="kk-e-telegram">Telegram Username <span class="req">*</span></label>
+          <input class="kk-input" type="text" id="kk-e-telegram"
+            name="contact[body]"
+            placeholder="@yourusername"
+            required />
+          <p class="kk-hint">We'll contact you on Telegram after enrollment to begin onboarding.</p>
+        </div>
+
+        <div class="kk-field">
+          <label class="kk-label" for="kk-e-phone">Phone Number <span class="opt">(optional)</span></label>
+          <input class="kk-input" type="tel" id="kk-e-phone"
+            name="contact[Phone Number]"
+            placeholder="+63 900 000 0000"
+            autocomplete="tel" />
+        </div>
+
+        <hr class="kk-form-divider" />
+
+        <div class="kk-price-reminder">
+          <p class="kk-reminder-label">COACHING FEE</p>
+          <p class="kk-reminder-price">$5,000</p>
+          <p class="kk-reminder-note">USD &nbsp;—&nbsp; One-Time Payment</p>
+        </div>
+
+        <!-- ── DISCLAIMER: What Happens After Payment ── -->
+        <div class="kk-disclaimer">
+          <p class="kk-disclaimer-header">What happens next</p>
+
+          <div class="kk-disclaimer-step">
+            <span class="kk-disclaimer-num">01</span>
+            <span class="kk-disclaimer-text">You will receive a confirmation email after completing your payment.</span>
+          </div>
+
+          <div class="kk-disclaimer-step">
+            <span class="kk-disclaimer-num">02</span>
+            <span class="kk-disclaimer-text">Within 24 hours, you will receive onboarding instructions and the next steps for your mentorship.</span>
+          </div>
+
+          <div class="kk-disclaimer-step">
+            <span class="kk-disclaimer-num">03</span>
+            <span class="kk-disclaimer-text">Communication will continue privately via Telegram where your sessions and guidance will take place.</span>
+          </div>
+
+          <p class="kk-disclaimer-note">
+            This is a private mentorship program. All communication and instructions will be handled directly after enrollment.
+          </p>
+        </div>
+
+        <button type="submit" class="kk-submit" id="kk-submit-btn">Confirm My Enrollment</button>
+
+        <p class="kk-privacy">🔒 Your details are private and confidential.<br/>This is not a dating or matchmaking service.</p>
+
+      </div>
+
+    {%- endform -%}
+
+
+    <!-- ── FAQ SECTION ── -->
+    <div class="kk-faq-section">
+      <p class="kk-faq-eyebrow">Before You Enroll</p>
+      <h2 class="kk-faq-title">Common <span style="color: var(--accent);">Questions.</span></h2>
+
+      <div class="kk-faq-list">
+
+        <div class="kk-faq-item">
+          <button class="kk-faq-question" aria-expanded="false">
+            When does the mentorship start?
+            <span class="kk-faq-icon">+</span>
+          </button>
+          <div class="kk-faq-answer">
+            The process begins immediately after your payment is confirmed. You will receive onboarding instructions within 24 hours, and your first session will be scheduled from there.
+          </div>
+        </div>
+
+        <div class="kk-faq-item">
+          <button class="kk-faq-question" aria-expanded="false">
+            How will we communicate during the program?
+            <span class="kk-faq-icon">+</span>
+          </button>
+          <div class="kk-faq-answer">
+            All communication, sessions, and guidance take place privately via Telegram. This is why your Telegram username is required during enrollment.
+          </div>
+        </div>
+
+        <div class="kk-faq-item">
+          <button class="kk-faq-question" aria-expanded="false">
+            Is this a recurring subscription or a one-time fee?
+            <span class="kk-faq-icon">+</span>
+          </button>
+          <div class="kk-faq-answer">
+            This is a one-time payment of $5,000 USD. There are no hidden fees or recurring charges.
+          </div>
+        </div>
+
+        <div class="kk-faq-item">
+          <button class="kk-faq-question" aria-expanded="false">
+            Is my personal information kept private?
+            <span class="kk-faq-icon">+</span>
+          </button>
+          <div class="kk-faq-answer">
+            Yes. All details you submit are strictly private and confidential. Your information will never be shared or sold to any third party.
+          </div>
+        </div>
+
+        <div class="kk-faq-item">
+          <button class="kk-faq-question" aria-expanded="false">
+            What if I don't receive the confirmation email?
+            <span class="kk-faq-icon">+</span>
+          </button>
+          <div class="kk-faq-answer">
+            Check your spam or promotions folder first. If you still don't see it within a few hours of payment, you can reach out directly via the Telegram username you provided on enrollment.
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ── END FAQ ── -->
+
+  </div>
+</div>
+
+<script>
+  document.getElementById('kk-enroll-form').addEventListener('submit', function() {
+    var btn = document.getElementById('kk-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+  });
+
+  // FAQ accordion
+  document.querySelectorAll('#kk-enroll .kk-faq-question').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var answer = this.nextElementSibling;
+      var isOpen = this.classList.contains('open');
+
+      // Close all
+      document.querySelectorAll('#kk-enroll .kk-faq-question').forEach(function(b) {
+        b.classList.remove('open');
+        b.setAttribute('aria-expanded', 'false');
+        b.nextElementSibling.classList.remove('open');
+      });
+
+      // Open clicked if it was closed
+      if (!isOpen) {
+        this.classList.add('open');
+        this.setAttribute('aria-expanded', 'true');
+        answer.classList.add('open');
+      }
+    });
+  });
+</script>

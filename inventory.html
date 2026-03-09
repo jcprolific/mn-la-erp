@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory & Warehouse — MN+LA ERP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ============================================================
+     INVENTORY DASHBOARD – LOCAL STYLES
+  ============================================================ */
+
+    /* ---- TAB BAR ---- */
+    .inv-tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 28px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .inv-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .inv-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: .8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      border: none;
+      background: none;
+      font-family: inherit;
+      transition: all .18s ease;
+      position: relative;
+    }
+
+    .inv-tab .material-icons-round {
+      font-size: 1rem;
+    }
+
+    .inv-tab:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .inv-tab.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+    }
+
+    .inv-tab .tab-badge {
+      background: var(--badge-red);
+      color: #fff;
+      font-size: .62rem;
+      font-weight: 700;
+      min-width: 17px;
+      height: 17px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    /* ---- STAT CARDS ---- */
+    .stat-grid-6 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    @media (min-width: 600px) {
+      .stat-grid-6 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (min-width: 1000px) {
+      .stat-grid-6 {
+        grid-template-columns: repeat(6, 1fr);
+      }
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .05);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all .18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--sc, rgba(255, 255, 255, .1));
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .stat-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, .09);
+      transform: translateY(-1px);
+    }
+
+    .stat-card__icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+    }
+
+    .stat-card__value {
+      font-size: 1.55rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -.03em;
+    }
+
+    .stat-card__label {
+      font-size: .68rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      line-height: 1.3;
+    }
+
+    /* ---- PRODUCT LOOKUP ---- */
+    .lookup-wrap {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .lookup-label {
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .lookup-label .material-icons-round {
+      font-size: .95rem;
+    }
+
+    .lookup-input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .lookup-input-box {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      transition: border-color .18s, box-shadow .18s;
+    }
+
+    .lookup-input-box:focus-within {
+      border-color: rgba(96, 165, 250, .5);
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, .08);
+    }
+
+    .lookup-input-box .material-icons-round {
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .lookup-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: .9rem;
+      font-family: inherit;
+    }
+
+    .lookup-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .lookup-scan-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 18px;
+      background: rgba(96, 165, 250, .1);
+      border: 1px solid rgba(96, 165, 250, .3);
+      border-radius: var(--radius-sm);
+      color: #60a5fa;
+      font-size: .82rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .18s ease;
+      white-space: nowrap;
+    }
+
+    .lookup-scan-btn:hover {
+      background: rgba(96, 165, 250, .2);
+    }
+
+    .lookup-scan-btn .material-icons-round {
+      font-size: 1.1rem;
+    }
+
+    .lookup-clear {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      border-radius: 6px;
+      transition: color .15s;
+    }
+
+    .lookup-clear:hover {
+      color: var(--text-primary);
+    }
+
+    .lookup-clear .material-icons-round {
+      font-size: 1.1rem;
+    }
+
+    /* ---- PRODUCT DETAIL CARD ---- */
+    .product-detail-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(96, 165, 250, .2);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 0 0 1px rgba(96, 165, 250, .05), 0 4px 20px rgba(0, 0, 0, .4);
+      animation: fadeSlideIn .2s ease;
+    }
+
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .pdc-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, .05);
+      gap: 16px;
+    }
+
+    .pdc-header-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .pdc-code {
+      font-size: .72rem;
+      font-weight: 600;
+      color: #60a5fa;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pdc-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .pdc-variants {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .pdc-variant-chip {
+      font-size: .7rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 6px;
+      padding: 3px 10px;
+    }
+
+    .pdc-status {
+      flex-shrink: 0;
+    }
+
+    .pdc-body {
+      padding: 0 24px 20px;
+    }
+
+    .pdc-section-label {
+      font-size: .68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin: 18px 0 10px;
+    }
+
+    .pdc-location-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .pdc-location-table tr {
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+    }
+
+    .pdc-location-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .pdc-location-table td {
+      padding: 9px 0;
+      font-size: .82rem;
+      vertical-align: middle;
+    }
+
+    .pdc-location-table td:last-child {
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .pdc-location-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pdc-location-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .pdc-total-row {
+      border-top: 1px solid rgba(255, 255, 255, .1) !important;
+      margin-top: 4px;
+    }
+
+    .pdc-total-row td {
+      padding-top: 13px !important;
+      font-weight: 700 !important;
+      color: var(--text-primary) !important;
+    }
+
+    .pdc-close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      transition: all .15s;
+    }
+
+    .pdc-close-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, .06);
+    }
+
+    .pdc-close-btn .material-icons-round {
+      font-size: 1.1rem;
+    }
+
+    /* ---- TABLE FILTERS ---- */
+    .table-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+      background: rgba(255, 255, 255, .01);
+    }
+
+    .filter-select {
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, .09);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: .78rem;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .filter-select:hover,
+    .filter-select:focus {
+      border-color: rgba(255, 255, 255, .2);
+    }
+
+    .filter-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: .78rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+
+    .filter-toggle .material-icons-round {
+      font-size: .95rem;
+    }
+
+    .filter-toggle.active {
+      background: rgba(255, 77, 106, .1);
+      border-color: rgba(255, 77, 106, .3);
+      color: #ff4d6a;
+    }
+
+    .filter-sep {
+      width: 1px;
+      height: 20px;
+      background: rgba(255, 255, 255, .07);
+      margin: 0 2px;
+    }
+
+    /* ---- ACTION BUTTONS ---- */
+    .inv-action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .inv-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: .82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s ease;
+    }
+
+    .inv-action-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, .2);
+    }
+
+    .inv-action-btn .material-icons-round {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+    }
+
+    .inv-action-btn--primary {
+      background: rgba(96, 165, 250, .1);
+      border-color: rgba(96, 165, 250, .3);
+      color: #60a5fa;
+    }
+
+    .inv-action-btn--primary:hover {
+      background: rgba(96, 165, 250, .18);
+    }
+
+    .inv-action-btn--primary .material-icons-round {
+      color: #60a5fa;
+    }
+
+    /* ---- TABLE CARD ---- */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .05);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .table-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .table-card__title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .table-card__title .material-icons-round {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+    }
+
+    .table-card__count {
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, .06);
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    /* ---- DATA TABLE ---- */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+
+    .data-table thead {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .data-table thead th {
+      padding: 9px 16px;
+      text-align: left;
+      font-size: .66rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      white-space: nowrap;
+      background: var(--bg-card);
+      border-bottom: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .data-table thead th:last-child {
+      text-align: right;
+    }
+
+    .data-table tbody tr {
+      border-bottom: 1px solid rgba(255, 255, 255, .03);
+      transition: background .12s;
+    }
+
+    .data-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .data-table tbody tr:hover {
+      background: rgba(255, 255, 255, .025);
+    }
+
+    .data-table td {
+      padding: 11px 16px;
+      vertical-align: middle;
+    }
+
+    .data-table td:last-child {
+      text-align: right;
+    }
+
+    .table-empty {
+      text-align: center;
+      padding: 36px;
+      color: var(--text-muted);
+      font-size: .82rem;
+    }
+
+    /* ---- BADGES ---- */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    .badge::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .badge--green {
+      background: rgba(52, 211, 153, .12);
+      color: #34d399;
+    }
+
+    .badge--amber {
+      background: rgba(245, 166, 35, .12);
+      color: #f5a623;
+    }
+
+    .badge--red {
+      background: rgba(255, 77, 106, .12);
+      color: #ff4d6a;
+    }
+
+    .badge--blue {
+      background: rgba(96, 165, 250, .12);
+      color: #60a5fa;
+    }
+
+    .badge--purple {
+      background: rgba(167, 139, 250, .12);
+      color: #a78bfa;
+    }
+
+    .badge--gray {
+      background: rgba(255, 255, 255, .06);
+      color: var(--text-secondary);
+    }
+
+    .badge--teal {
+      background: rgba(45, 212, 191, .12);
+      color: #2dd4bf;
+    }
+
+    /* movement type badges */
+    .mvt {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: .67rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .mvt-receive {
+      background: rgba(52, 211, 153, .12);
+      color: #34d399;
+    }
+
+    .mvt-transfer {
+      background: rgba(96, 165, 250, .12);
+      color: #60a5fa;
+    }
+
+    .mvt-adjustment {
+      background: rgba(245, 166, 35, .12);
+      color: #f5a623;
+    }
+
+    .mvt-return {
+      background: rgba(167, 139, 250, .12);
+      color: #a78bfa;
+    }
+
+    .mvt-pullout {
+      background: rgba(255, 77, 106, .12);
+      color: #ff4d6a;
+    }
+
+    /* ---- SKU PILL ---- */
+    .sku {
+      font-size: .67rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      padding: 2px 8px;
+      background: rgba(255, 255, 255, .05);
+      color: var(--text-secondary);
+      border-radius: 5px;
+    }
+
+    /* ---- REFRESH BTN ---- */
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: all .15s;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, .06);
+      color: var(--text-primary);
+    }
+
+    .icon-btn .material-icons-round {
+      font-size: 1.05rem;
+    }
+
+    /* ---- MODAL ---- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(0, 0, 0, .65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-elevated);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: .76rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .1);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .18s;
+    }
+
+    .form-control:focus {
+      border-color: rgba(96, 165, 250, .5);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 20px;
+      border-radius: 9px;
+      border: none;
+      font-family: inherit;
+      font-size: .84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s;
+    }
+
+    .btn-primary {
+      background: #60a5fa;
+      color: #000a14;
+    }
+
+    .btn-primary:hover {
+      background: #93c5fd;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, .06);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, .1);
+      color: var(--text-primary);
+    }
+
+    /* ---- TAB PANELS ---- */
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ---- MISC ---- */
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinning {
+      animation: spin .6s linear infinite;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==================== TOP NAV ==================== -->
+  <nav class="top-nav" id="topNav">
+    <div class="nav-left">
+      <button class="nav-icon-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+        <span class="material-icons-round">menu</span>
+      </button>
+      <div class="brand">
+        <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA">
+          <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white" stroke-width="8" />
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+            font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700"
+            letter-spacing="-2">MN+LA</text>
+        </svg>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="nav-icon-btn" id="notifBtn" aria-label="Notifications">
+        <span class="material-icons-round">notifications</span>
+        <span class="nav-badge" id="navNotifBadge" style="display:none;">0</span>
+      </button>
+      <button class="logout-btn" id="logoutBtn" aria-label="Sign out">
+        <span class="material-icons-round">logout</span>
+      </button>
+      <div class="profile-wrapper" id="profileWrapper">
+        <button class="profile-btn" id="profileBtn" aria-label="User menu">
+          <span class="profile-avatar" id="profileAvatar">--</span>
+          <span class="material-icons-round profile-chevron">expand_more</span>
+        </button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="dropdown-header">
+            <strong id="dropdownName">&mdash;</strong>
+            <small id="dropdownRole">&mdash;</small>
+          </div>
+          <div class="dropdown-divider"></div>
+          <a href="index.html" class="dropdown-item"><span class="material-icons-round">home</span> Master Dashboard</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item dropdown-item--danger" id="dropdownLogout">
+            <span class="material-icons-round">logout</span> Sign Out
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="main-content">
+
+    <!-- BACK NAV -->
+    <a href="index.html" class="back-nav">
+      <span class="material-icons-round">arrow_back</span> Master Dashboard
+    </a>
+
+    <!-- MODULE HEADER -->
+    <div class="module-header" style="margin-bottom:24px;">
+      <div class="module-header__icon" style="background:rgba(96,165,250,.1);color:#60a5fa;">
+        <span class="material-icons-round">inventory_2</span>
+      </div>
+      <div>
+        <div class="module-header__title">Inventory &amp; Warehouse</div>
+        <div class="module-header__subtitle">Stock levels, movements, transfers, barcode lookup, and live item
+          availability</div>
+      </div>
+    </div>
+
+    <!-- ===== STAT CARDS ===== -->
+    <div class="stat-grid-6">
+      <div class="stat-card" style="--sc:#60a5fa;">
+        <div class="stat-card__icon" style="background:rgba(96,165,250,.1);color:#60a5fa;"><span
+            class="material-icons-round">inventory</span></div>
+        <div class="stat-card__value" id="sc-units">—</div>
+        <div class="stat-card__label">Total Units</div>
+      </div>
+      <div class="stat-card" style="--sc:#a78bfa;">
+        <div class="stat-card__icon" style="background:rgba(167,139,250,.1);color:#a78bfa;"><span
+            class="material-icons-round">style</span></div>
+        <div class="stat-card__value" id="sc-skus">—</div>
+        <div class="stat-card__label">Active SKUs</div>
+      </div>
+      <div class="stat-card" style="--sc:#34d399;">
+        <div class="stat-card__icon" style="background:rgba(52,211,153,.1);color:#34d399;"><span
+            class="material-icons-round">move_to_inbox</span></div>
+        <div class="stat-card__value" id="sc-received">—</div>
+        <div class="stat-card__label">Received Today</div>
+      </div>
+      <div class="stat-card" style="--sc:#f472b6;">
+        <div class="stat-card__icon" style="background:rgba(244,114,182,.1);color:#f472b6;"><span
+            class="material-icons-round">outbox</span></div>
+        <div class="stat-card__value" id="sc-sent">—</div>
+        <div class="stat-card__label">Sent to Stores</div>
+      </div>
+      <div class="stat-card" style="--sc:#f5a623;">
+        <div class="stat-card__icon" style="background:rgba(245,166,35,.1);color:#f5a623;"><span
+            class="material-icons-round">local_shipping</span></div>
+        <div class="stat-card__value" id="sc-transit">—</div>
+        <div class="stat-card__label">In Transit</div>
+      </div>
+      <div class="stat-card" style="--sc:#ff4d6a;">
+        <div class="stat-card__icon" style="background:rgba(255,77,106,.1);color:#ff4d6a;"><span
+            class="material-icons-round">error_outline</span></div>
+        <div class="stat-card__value" id="sc-attention">—</div>
+        <div class="stat-card__label">Need Attention</div>
+      </div>
+    </div>
+
+    <!-- ===== ACTION BUTTONS ===== -->
+    <div class="inv-action-row">
+      <button class="inv-action-btn" id="btnAddProduct" onclick="openAddProductModal()">
+        <span class="material-icons-round">add_circle</span> Add Product
+      </button>
+      <button class="inv-action-btn" id="btnFactoryRelease" onclick="window.location.href='factory-release.html'">
+        <span class="material-icons-round">output</span> Factory Release
+      </button>
+      <button class="inv-action-btn" id="btnWarehouseDispatch" onclick="window.location.href='warehouse-dispatch.html'">
+        <span class="material-icons-round">local_shipping</span> Warehouse Dispatch
+      </button>
+      <button class="inv-action-btn" id="btnPullOut" onclick="openMovementModal({type:'return'})">
+        <span class="material-icons-round">undo</span> Log Return
+      </button>
+      <button class="inv-action-btn" id="btnAdjust" onclick="openMovementModal({type:'adjustment'})">
+        <span class="material-icons-round">tune</span> Adjustment
+      </button>
+    </div>
+
+    <!-- ===== TAB BAR ===== -->
+    <div class="inv-tabs" role="tablist">
+      <button class="inv-tab active" data-tab="lookup" role="tab">
+        <span class="material-icons-round">search</span> Product Lookup
+      </button>
+      <button class="inv-tab" data-tab="inventory" role="tab">
+        <span class="material-icons-round">table_rows</span> All Inventory
+      </button>
+      <button class="inv-tab" data-tab="movements" role="tab">
+        <span class="material-icons-round">timeline</span> Movements
+      </button>
+      <button class="inv-tab" data-tab="transfers" role="tab">
+        <span class="material-icons-round">local_shipping</span> Transfers
+      </button>
+      <button class="inv-tab" data-tab="alerts" role="tab">
+        <span class="material-icons-round">warning_amber</span> Alerts
+        <span class="tab-badge" id="alertTabBadge">0</span>
+      </button>
+    </div>
+
+    <!-- ===== TAB: PRODUCT LOOKUP ===== -->
+    <div class="tab-panel active" id="panel-lookup">
+
+      <!-- Search Input -->
+      <div class="lookup-wrap">
+        <div class="lookup-label"><span class="material-icons-round">qr_code_scanner</span> Barcode Scan / Item Search
+        </div>
+        <div class="lookup-input-row">
+          <div class="lookup-input-box">
+            <span class="material-icons-round">search</span>
+            <input type="text" id="skuLookup" class="lookup-input"
+              placeholder="Enter SKU, item code, product name, or scan barcode…" autocomplete="off" />
+            <button class="lookup-clear" id="skuLookupClear" style="display:none;">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+          <button class="lookup-scan-btn" id="btnScanBarcode">
+            <span class="material-icons-round">qr_code_scanner</span> Scan
+          </button>
+        </div>
+      </div>
+
+      <!-- Product Detail Card (hidden until search) -->
+      <div id="productDetailCard" style="display:none;"></div>
+
+      <!-- Empty state when nothing searched -->
+      <div id="lookupEmptyState" style="text-align:center; padding:40px 24px; color:var(--text-muted);">
+        <span class="material-icons-round"
+          style="font-size:2.5rem; display:block; margin-bottom:12px; color:var(--text-muted);">inventory_2</span>
+        <div style="font-size:.9rem; font-weight:500; color:var(--text-secondary); margin-bottom:6px;">Search for any
+          product</div>
+        <div style="font-size:.78rem;">Enter an item code, SKU, or product name above to view availability across all
+          locations.</div>
+      </div>
+
+    </div>
+
+    <!-- ===== TAB: ALL INVENTORY ===== -->
+    <div class="tab-panel" id="panel-inventory">
+      <div class="table-card">
+        <div class="table-card__header">
+          <div class="table-card__title">
+            <span class="material-icons-round">table_rows</span> Warehouse Inventory
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="table-card__count" id="invCount">0 items</span>
+            <button class="icon-btn" id="refreshInventory" title="Refresh"><span
+                class="material-icons-round">refresh</span></button>
+          </div>
+        </div>
+        <!-- FILTERS -->
+        <div class="table-filters">
+          <select class="filter-select" id="filterLocation">
+            <option value="">All Locations</option>
+          </select>
+          <select class="filter-select" id="filterStatus">
+            <option value="">All Status</option>
+            <option value="healthy">Healthy</option>
+            <option value="low">Low Stock</option>
+            <option value="out">Out of Stock</option>
+          </select>
+          <div class="filter-sep"></div>
+          <button class="filter-toggle" id="filterLowStockOnly">
+            <span class="material-icons-round">warning_amber</span> Low Stock Only
+          </button>
+        </div>
+        <!-- TABLE -->
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="inventoryTable">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Product</th>
+                <th>Size</th>
+                <th>Color</th>
+                <th>Location</th>
+                <th>Available</th>
+                <th>Reserved</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+              <tr>
+                <td colspan="8" class="table-empty">Loading inventory…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: MOVEMENTS ===== -->
+    <div class="tab-panel" id="panel-movements">
+      <div class="table-card">
+        <div class="table-card__header">
+          <div class="table-card__title">
+            <span class="material-icons-round">timeline</span> Recent Inventory Movements
+          </div>
+          <span class="table-card__count" id="movCount">0</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>From</th>
+                <th>To</th>
+              </tr>
+            </thead>
+            <tbody id="movementsTableBody">
+              <tr>
+                <td colspan="6" class="table-empty">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: TRANSFERS ===== -->
+    <div class="tab-panel" id="panel-transfers">
+      <div class="table-card">
+        <div class="table-card__header">
+          <div class="table-card__title">
+            <span class="material-icons-round">local_shipping</span> Transfers In Transit
+          </div>
+          <span class="table-card__count" id="trnCount">0</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Transfer ID</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="transfersTableBody">
+              <tr>
+                <td colspan="6" class="table-empty">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: ALERTS ===== -->
+    <div class="tab-panel" id="panel-alerts">
+      <div class="table-card">
+        <div class="table-card__header">
+          <div class="table-card__title">
+            <span class="material-icons-round" style="color:#f5a623;">warning_amber</span> Low Stock &amp; Out of Stock
+          </div>
+          <span class="table-card__count" id="alertCount">0</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>SKU</th>
+                <th>Location</th>
+                <th>Remaining</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="alertsTableBody">
+              <tr>
+                <td colspan="5" class="table-empty">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Mobile sidebar -->
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+  <aside class="mobile-sidebar" id="mobileSidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA">
+          <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white" stroke-width="8" />
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+            font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-size="82" font-weight="700"
+            letter-spacing="-2">MN+LA</text>
+        </svg>
+      </div>
+      <button class="nav-icon-btn" id="closeSidebar"><span class="material-icons-round">close</span></button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link"><span class="material-icons-round">home</span> Master Dashboard</a>
+      <a href="inventory.html" class="sidebar-link active"><span class="material-icons-round">inventory_2</span>
+        Inventory</a>
+      <a href="manufacturing.html" class="sidebar-link"><span
+          class="material-icons-round">precision_manufacturing</span> Manufacturing</a>
+      <a href="store.html" class="sidebar-link"><span class="material-icons-round">storefront</span> Store
+        Operations</a>
+      <div class="dropdown-divider"></div>
+      <a href="#" id="sidebarLogout" class="sidebar-link sidebar-link--danger"><span
+          class="material-icons-round">logout</span> Sign Out</a>
+    </nav>
+  </aside>
+
+  <!-- ====== ADD PRODUCT MODAL ====== -->
+  <div id="addProductModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+
+      <!-- Modal Header -->
+      <div
+        style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;position:sticky;top:0;background:var(--bg-elevated);z-index:10;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06);">
+        <h3 style="margin:0;display:flex;align-items:center;gap:9px;font-size:1rem;">
+          <span class="material-icons-round" style="color:#34d399;font-size:1.2rem;">add_circle</span> Add New Product
+        </h3>
+        <button class="icon-btn" onclick="document.getElementById('addProductModal').style.display='none'">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+
+      <!-- Barcode scanner field -->
+      <div style="margin:14px 0 10px;">
+        <div id="addProductScanBanner"
+          style="display:none;margin-bottom:10px;padding:8px 14px;border-radius:8px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);align-items:center;gap:9px;font-size:.78rem;color:#60a5fa;">
+          <span class="material-icons-round"
+            style="font-size:1rem;animation:scanPulse 1s ease-in-out infinite;">qr_code_scanner</span>
+          <span><strong>Scanner Ready</strong> — aim barcode at scanner or type manually</span>
+        </div>
+        <label
+          style="display:flex;align-items:center;gap:6px;font-size:.76rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;">
+          <span class="material-icons-round" style="font-size:.85rem;color:#60a5fa;">qr_code</span>
+          Barcode <span style="color:var(--text-muted);font-weight:400;">(scan first, or skip)</span>
+        </label>
+        <div style="display:flex;gap:8px;">
+          <div id="addBarcodeWrap"
+            style="flex:1;display:flex;align-items:center;background:var(--bg-card);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 14px;transition:border-color .2s,box-shadow .2s;">
+            <span class="material-icons-round"
+              style="font-size:1rem;color:var(--text-muted);margin-right:8px;flex-shrink:0;">barcode_reader</span>
+            <input type="text" id="addBarcode"
+              style="flex:1;background:none;border:none;outline:none;color:var(--text-primary);font-size:.85rem;font-family:inherit;"
+              placeholder="Scan or enter barcode…" autocomplete="off" />
+          </div>
+          <button type="button" id="btnModalScanBarcode"
+            style="display:flex;align-items:center;gap:6px;padding:9px 14px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);border-radius:8px;color:#60a5fa;font-size:.78rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .18s;white-space:nowrap;">
+            <span class="material-icons-round" style="font-size:1rem;">qr_code_scanner</span> Scan
+          </button>
+        </div>
+        <p id="addBarcodeHint" style="margin:5px 0 0;font-size:.7rem;color:var(--text-muted);display:none;"></p>
+      </div>
+
+      <form id="addProductForm">
+
+        <!-- ── Section 1: Product Info ── -->
+        <div
+          style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:16px;margin-bottom:14px;">
+          <div
+            style="font-size:.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <span class="material-icons-round" style="font-size:.85rem;">info</span> Product Info
+          </div>
+
+          <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" id="addName" class="form-control" required
+              placeholder='e.g. "MONARCH" S/S DRAPE IN FERN' />
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Base SKU *
+                <span style="font-size:.64rem;color:var(--text-muted);font-weight:400;"> — used as prefix for
+                  variants</span>
+              </label>
+              <input type="text" id="addSku" class="form-control" required placeholder="e.g. MON-FERN" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Category / Type</label>
+              <input type="text" id="addCategory" class="form-control" placeholder="e.g. Tops, Bottoms" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Section 2: Variants ── -->
+        <div
+          style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:16px;margin-bottom:14px;">
+          <div
+            style="font-size:.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="display:flex;align-items:center;gap:6px;">
+              <span class="material-icons-round" style="font-size:.85rem;">format_list_bulleted</span> Sizes / Variants
+            </span>
+            <span id="variantCount"
+              style="font-size:.68rem;color:var(--text-secondary);font-weight:400;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px;">1
+              variant</span>
+          </div>
+
+          <!-- Column headers -->
+          <div
+            style="display:grid;grid-template-columns:90px 1fr 1fr 80px 34px;gap:8px;margin-bottom:6px;padding:0 4px;">
+            <div
+              style="font-size:.67rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">
+              SKU Suffix</div>
+            <div
+              style="font-size:.67rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">
+              Size</div>
+            <div
+              style="font-size:.67rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">
+              Color / Variant</div>
+            <div
+              style="font-size:.67rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">
+              Qty</div>
+            <div></div>
+          </div>
+
+          <!-- Dynamic variant rows container -->
+          <div id="variantRowsContainer"></div>
+
+          <!-- Add variant button -->
+          <button type="button" id="btnAddVariant"
+            style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(52,211,153,.06);border:1px dashed rgba(52,211,153,.3);border-radius:8px;color:#34d399;font-size:.78rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .18s;margin-top:8px;width:100%;justify-content:center;">
+            <span class="material-icons-round" style="font-size:1rem;">add</span> Add Size / Variant
+          </button>
+        </div>
+
+        <!-- ── Section 3: Location & Notes ── -->
+        <div
+          style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:16px;margin-bottom:14px;">
+          <div
+            style="font-size:.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <span class="material-icons-round" style="font-size:.85rem;">place</span> Destination & Notes
+          </div>
+
+          <div class="form-group">
+            <label>Location *
+              <span style="font-size:.64rem;color:var(--text-muted);font-weight:400;"> — applies to all variants</span>
+            </label>
+            <select id="addLocation" class="form-control" required>
+              <option value="">Loading locations…</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Notes / Remarks</label>
+            <input type="text" id="addNotes" class="form-control"
+              placeholder="Optional — e.g. first batch from factory" />
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <div id="addProductSaved" style="font-size:.75rem;color:#34d399;display:none;align-items:center;gap:5px;">
+            <span class="material-icons-round" style="font-size:.9rem;">check_circle</span>
+            <span id="addProductSavedText">Saved to database</span>
+          </div>
+          <div style="display:flex;gap:10px;margin-left:auto;">
+            <button type="button" class="btn btn-secondary"
+              onclick="document.getElementById('addProductModal').style.display='none'">Cancel</button>
+            <button type="submit" id="btnAddProductSubmit" class="btn btn-primary"
+              style="background:#34d399;color:#000;">
+              <span class="material-icons-round" style="font-size:.95rem;">add_circle</span> Add Product
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Receive Inventory Modal -->
+
+  <div id="receiveModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+        <h3 style="margin:0;display:flex;align-items:center;gap:9px;font-size:1rem;">
+          <span class="material-icons-round" style="color:#60a5fa;font-size:1.2rem;">move_to_inbox</span> Receive
+          Inventory
+        </h3>
+        <button class="icon-btn" id="btnCloseReceiveModal"><span class="material-icons-round">close</span></button>
+      </div>
+      <form id="receiveForm">
+        <div class="form-group">
+          <label>Product / SKU</label>
+          <select id="recvProduct" class="form-control" required>
+            <option value="">Select a product…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Destination Location</label>
+          <select id="recvLocation" class="form-control" required>
+            <option value="">Select a location…</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" id="recvQuantity" class="form-control" min="1" value="1" required />
+          </div>
+          <div class="form-group">
+            <label>PO / Reference</label>
+            <input type="text" id="recvNotes" class="form-control" placeholder="Optional" />
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+          <button type="button" class="btn btn-secondary"
+            onclick="document.getElementById('receiveModal').style.display='none'">Cancel</button>
+          <button type="submit" id="btnSubmitReceive" class="btn btn-primary">Receive Items</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== EDIT PRODUCT MODAL ====== -->
+  <div id="editProductModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content" style="max-width:520px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+        <h3 style="margin:0;display:flex;align-items:center;gap:9px;font-size:1rem;">
+          <span class="material-icons-round" style="color:#a78bfa;font-size:1.2rem;">edit</span> Edit Product
+        </h3>
+        <button class="icon-btn" id="btnCloseEditModal"><span class="material-icons-round">close</span></button>
+      </div>
+      <form id="editProductForm">
+        <input type="hidden" id="editSku" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label>Product Name</label>
+            <input type="text" id="editName" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label>SKU Code</label>
+            <input type="text" id="editSkuDisplay" class="form-control" required />
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label>Size</label>
+            <input type="text" id="editSize" class="form-control" placeholder="e.g. M" />
+          </div>
+          <div class="form-group">
+            <label>Color</label>
+            <input type="text" id="editColor" class="form-control" placeholder="e.g. Black" />
+          </div>
+          <div class="form-group">
+            <label>Available Qty</label>
+            <input type="number" id="editAvailable" class="form-control" min="0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <select id="editLocation" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label>Notes / Reason for Edit</label>
+          <input type="text" id="editNotes" class="form-control"
+            placeholder="Optional — e.g. correction after stocktake" />
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px;">
+          <button type="button" class="btn" id="btnMoveFromEdit"
+            style="background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);color:#60a5fa;">
+            <span class="material-icons-round" style="font-size:1rem;">swap_horiz</span> Move Stock
+          </button>
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="btn btn-secondary"
+              onclick="document.getElementById('editProductModal').style.display='none'">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="background:#a78bfa;color:#1a0050;">Save
+              Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== CREATE MOVEMENT / TRANSFER MODAL ====== -->
+  <div id="movementModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content" style="max-width:500px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+        <h3 style="margin:0;display:flex;align-items:center;gap:9px;font-size:1rem;" id="movementModalTitle">
+          <span class="material-icons-round" style="color:#60a5fa;font-size:1.2rem;">swap_horiz</span> Move Stock
+        </h3>
+        <button class="icon-btn" id="btnCloseMovementModal"><span class="material-icons-round">close</span></button>
+      </div>
+      <form id="movementForm">
+        <!-- Movement Type -->
+        <div class="form-group" style="margin-bottom:16px;">
+          <label style="margin-bottom:8px;display:block;">Movement Type</label>
+          <div class="mov-type-selector" id="movTypeSelector">
+            <button type="button" class="mov-type-btn active" data-type="factory-release">Factory Release</button>
+            <button type="button" class="mov-type-btn" data-type="dispatch">Warehouse Dispatch</button>
+            <button type="button" class="mov-type-btn" data-type="return">Return</button>
+            <button type="button" class="mov-type-btn" data-type="adjustment">Adjustment</button>
+          </div>
+          <input type="hidden" id="movType" value="factory-release" />
+        </div>
+
+        <div class="form-group">
+          <label>Product</label>
+          <select id="movProduct" class="form-control" required>
+            <option value="">Select product…</option>
+          </select>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label>From Location</label>
+            <select id="movFrom" class="form-control" required>
+              <option value="">Select origin…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>To Location</label>
+            <select id="movTo" class="form-control">
+              <option value="">Select destination…</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" id="movQty" class="form-control" min="1" value="1" required />
+          </div>
+          <div class="form-group">
+            <label>Reference / Notes</label>
+            <input type="text" id="movNotes" class="form-control" placeholder="Optional" />
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+          <button type="button" class="btn btn-secondary"
+            onclick="document.getElementById('movementModal').style.display='none'">Cancel</button>
+          <button type="submit" id="btnSubmitMovement" class="btn btn-primary">Log Movement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style>
+    .mov-type-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mov-type-btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: .8rem;
+      font-weight: 500;
+      letter-spacing: .01em;
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+
+    .mov-type-btn:hover {
+      border-color: rgba(255, 255, 255, .25);
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .mov-type-btn.active {
+      border-color: #60a5fa;
+      color: #60a5fa;
+      background: rgba(96, 165, 250, .07);
+      font-weight: 600;
+    }
+
+    /* audit trail */
+    .audit-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+    }
+
+    .audit-row:last-child {
+      border-bottom: none;
+    }
+
+    .audit-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .audit-time {
+      font-size: .68rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .audit-desc {
+      font-size: .78rem;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    .audit-desc strong {
+      color: var(--text-primary);
+    }
+
+    /* clickable rows */
+    .data-table tbody tr {
+      cursor: pointer;
+    }
+
+    .data-table tbody tr:hover {
+      background: rgba(255, 255, 255, .035) !important;
+    }
+
+    /* ---- BARCODE SCANNER ANIMATIONS ---- */
+    @keyframes scanPulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: .6;
+        transform: scale(1.12);
+      }
+    }
+
+    @keyframes scanGlow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, .2);
+      }
+
+      50% {
+        box-shadow: 0 0 0 4px rgba(96, 165, 250, .45), 0 0 16px rgba(96, 165, 250, .15);
+      }
+    }
+
+    #addBarcodeWrap.scanner-ready {
+      border-color: rgba(96, 165, 250, .6) !important;
+      animation: scanGlow 1.2s ease-in-out infinite;
+    }
+
+    #btnModalScanBarcode:hover {
+      background: rgba(96, 165, 250, .18) !important;
+    }
+  </style>
+
+  <div id="toastContainer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+  <script src="auth.js"></script>
+  <script src="inventory.js"></script>
+
+  <script>
+    (async function () {
+      await window.Auth.guard();
+      const p = window.Auth.profile;
+      if (p) {
+        const initials = (p.full_name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+        const av = document.getElementById('profileAvatar'); if (av) av.textContent = initials;
+        const dn = document.getElementById('dropdownName'); if (dn) dn.textContent = p.full_name || 'User';
+        const dr = document.getElementById('dropdownRole'); if (dr) dr.textContent = p.role || '';
+      }
+      const doLogout = e => { e.preventDefault(); window.Auth.logout(); };
+      ['logoutBtn', 'dropdownLogout', 'sidebarLogout'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', doLogout); });
+      // Profile dropdown
+      const pw = document.getElementById('profileWrapper'), pb = document.getElementById('profileBtn');
+      if (pb) pb.addEventListener('click', e => { e.stopPropagation(); pw.classList.toggle('open'); });
+      document.addEventListener('click', () => { if (pw) pw.classList.remove('open'); });
+      // Mobile sidebar
+      const mBtn = document.getElementById('mobileMenuBtn'), ms = document.getElementById('mobileSidebar'),
+        mo = document.getElementById('mobileOverlay'), cs = document.getElementById('closeSidebar');
+      const openS = () => { if (ms) ms.classList.add('open'); if (mo) mo.classList.add('visible'); document.body.style.overflow = 'hidden'; };
+      const closeS = () => { if (ms) ms.classList.remove('open'); if (mo) mo.classList.remove('visible'); document.body.style.overflow = ''; };
+      if (mBtn) mBtn.addEventListener('click', openS);
+      if (cs) cs.addEventListener('click', closeS);
+      if (mo) mo.addEventListener('click', closeS);
+    })();
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Count — MN+LA ERP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        .sc-page {
+            padding: calc(var(--nav-height) + 20px) 24px 80px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .sc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .sc-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sc-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -.035em;
+        }
+
+        .sc-location-badge {
+            background: rgba(122, 159, 196, .1);
+            color: #7a9fc4;
+            border: 1px solid rgba(122, 159, 196, .3);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+
+        .sc-status-badge {
+            background: rgba(245, 166, 35, .1);
+            color: #f5a623;
+            border: 1px solid rgba(245, 166, 35, .3);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: .75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .sc-status-badge.submitted {
+            background: rgba(52, 211, 153, .1);
+            color: #34d399;
+            border-color: rgba(52, 211, 153, .3);
+        }
+
+        .sc-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .sc-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: .85rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all .2s;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .sc-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sc-btn:hover:not(:disabled) {
+            background: var(--bg-elevated);
+            border-color: rgba(255, 255, 255, .2);
+        }
+
+        .sc-btn--primary {
+            background: rgba(122, 159, 196, .15);
+            border-color: rgba(122, 159, 196, .4);
+            color: #aac8e8;
+        }
+
+        .sc-btn--primary:hover:not(:disabled) {
+            background: rgba(122, 159, 196, .25);
+            border-color: rgba(122, 159, 196, .6);
+            box-shadow: 0 4px 12px rgba(122, 159, 196, .2);
+        }
+
+        .sc-btn--success {
+            background: rgba(52, 211, 153, .15);
+            border-color: rgba(52, 211, 153, .4);
+            color: #34d399;
+        }
+
+        .sc-btn--success:hover:not(:disabled) {
+            background: rgba(52, 211, 153, .25);
+            border-color: rgba(52, 211, 153, .6);
+            box-shadow: 0 4px 12px rgba(52, 211, 153, .2);
+        }
+
+        .sc-table-wrap {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, .05);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .sc-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .sc-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, .02);
+            border-bottom: 1px solid rgba(255, 255, 255, .05);
+        }
+
+        .sc-table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, .03);
+            font-size: .85rem;
+        }
+
+        .sc-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .sc-table tr:hover {
+            background: rgba(255, 255, 255, .01);
+        }
+
+        .sc-product-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .sc-product-meta {
+            font-size: .75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .sc-qty-input {
+            width: 80px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, .15);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: .9rem;
+            text-align: center;
+            transition: all .2s;
+        }
+
+        .sc-qty-input:focus {
+            outline: none;
+            border-color: #7a9fc4;
+            box-shadow: 0 0 0 3px rgba(122, 159, 196, .15);
+        }
+
+        .sc-qty-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sc-variance {
+            font-weight: 700;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .sc-variance.positive {
+            color: #34d399;
+        }
+
+        .sc-variance.negative {
+            color: #ff4d6a;
+        }
+
+        .sc-variance.zero {
+            color: var(--text-muted);
+        }
+
+        .sc-system-qty {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .sc-empty-state {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .sc-row-dirty {
+            background-color: rgba(52, 211, 153, 0.05) !important;
+            border-left: 3px solid #34d399 !important;
+        }
+
+        /* ── Modals ── */
+        .sc-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, .75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .sc-modal-overlay.open {
+            display: flex;
+        }
+
+        .sc-modal {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 22px;
+            padding: 30px;
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 32px 80px rgba(0, 0, 0, .65), 0 0 0 1px rgba(255, 255, 255, .04);
+        }
+
+        .sc-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .sc-modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -.02em;
+        }
+
+        .sc-modal-title .material-icons-round {
+            color: #7a9fc4;
+        }
+
+        .sc-modal-close {
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            padding: 0;
+        }
+
+        .sc-modal-close:hover {
+            background: rgba(255, 255, 255, .1);
+            color: var(--text-primary);
+        }
+
+        .sc-modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            border-top: 1px solid rgba(255, 255, 255, .06);
+            padding-top: 18px;
+            margin-top: 20px;
+        }
+
+        .sc-form-group {
+            margin-bottom: 16px;
+        }
+
+        .sc-form-group label {
+            display: block;
+            font-size: .75rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .sc-form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 9px;
+            background: var(--bg-primary);
+            border: 1px solid rgba(255, 255, 255, .09);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: .85rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .sc-form-group select:focus {
+            border-color: rgba(122, 159, 196, .4);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="index.html" style="text-decoration:none; display:block;">
+                <div class="brand">
+                    <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img"
+                        aria-label="MN+LA">
+                        <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white"
+                            stroke-width="8" />
+                        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+                            font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700"
+                            letter-spacing="-2">MN+LA</text>
+                    </svg>
+                </div>
+            </a>
+        </div>
+        <div class="nav-right">
+            <div id="userChip" class="user-chip" style="display:none;"></div>
+            <div class="profile-wrapper" id="profileWrapper">
+                <button class="icon-btn profile-btn" id="profileBtn" aria-label="Profile Context">
+                    <span class="material-icons-round">account_circle</span>
+                </button>
+                <div class="profile-dropdown">
+                    <div class="dropdown-header">
+                        <div class="dropdown-name" id="dropName">Loading...</div>
+                        <div class="dropdown-role" id="dropRole">Loading...</div>
+                    </div>
+                    <a href="login.html" class="dropdown-item" onclick="Auth.signOut(event)">
+                        <span class="material-icons-round">logout</span> Sign Out
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="sc-page">
+        <!-- Back Link -->
+        <a href="store.html" class="sd-back"
+            style="display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-size:.78rem;font-weight:500;text-decoration:none;padding:6px 12px 6px 8px;border-radius:8px;margin-bottom:16px;">
+            <span class="material-icons-round" style="font-size:16px;">arrow_back</span>
+            Back to Dashboard
+        </a>
+
+        <div class="sc-header">
+            <div class="sc-title-group">
+                <h1 class="sc-title">Direct Inventory Recording</h1>
+                <span id="locationBadge" class="sc-location-badge">Loading...</span>
+            </div>
+            <div class="sc-actions">
+                <button id="btnSaveLive" class="sc-btn sc-btn--success" disabled>
+                    <span class="material-icons-round" style="font-size:18px;">cloud_upload</span> Save Live Counts
+                </button>
+            </div>
+        </div>
+
+        <div style="margin-bottom:16px; display:flex; gap:12px; flex-wrap:wrap;">
+            <div style="flex:1; max-width:400px; position:relative;">
+                <span class="material-icons-round"
+                    style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:18px;">qr_code_scanner</span>
+                <input type="text" id="barcodeInput" placeholder="Scan Barcode here..."
+                    style="width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(122,159,196,0.4); background:rgba(122,159,196,0.05); color:var(--text-primary); font-family:inherit; font-size:.9rem; font-weight:600; outline:none; transition:all .2s;"
+                    autofocus />
+            </div>
+            <div style="flex:1; max-width:400px; position:relative;">
+                <span class="material-icons-round"
+                    style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:18px;">search</span>
+                <input type="text" id="searchInput" placeholder="Search by name, SKU, or color..."
+                    style="width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-card); color:var(--text-primary); font-family:inherit; font-size:.85rem; outline:none;" />
+            </div>
+        </div>
+
+        <div class="sc-table-wrap">
+            <table class="sc-table">
+                <thead>
+                    <tr>
+                        <th>Product & Details</th>
+                        <th style="width:120px;text-align:center;">System Qty</th>
+                        <th style="width:140px;text-align:center;">Counted Qty</th>
+                        <th style="width:120px;text-align:right;">Variance</th>
+                    </tr>
+                </thead>
+                <tbody id="countTableBody">
+                    <tr>
+                        <td colspan="4" class="sc-empty-state">Loading inventory...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- CONFIRMATION MODAL -->
+    <div class="sc-modal-overlay" id="confirmModal">
+        <div class="sc-modal">
+            <div class="sc-modal-header">
+                <div class="sc-modal-title">
+                    <span class="material-icons-round">rule</span> Review Inventory Updates
+                </div>
+                <button class="sc-modal-close" id="btnCloseModal">✕</button>
+            </div>
+
+            <p style="font-size: .85rem; color: var(--text-secondary); margin-bottom: 16px;">
+                You are about to modify live inventory counts for the branch: <strong id="modalLocationBadge"
+                    style="color: #34d399;"></strong>. Please confirm the changes below.
+            </p>
+
+            <div class="sc-table-wrap" style="margin-bottom: 16px; max-height: 250px; overflow-y: auto;">
+                <table class="sc-table">
+                    <thead>
+                        <tr>
+                            <th>Product/SKU</th>
+                            <th style="text-align:center;">Current</th>
+                            <th style="text-align:center;">New</th>
+                            <th style="text-align:right;">Variance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="sc-form-group">
+                <label>Reason for Update *</label>
+                <select id="updateReason">
+                    <option value="">Select a reason...</option>
+                    <option value="Initial Encoding">Initial Encoding</option>
+                    <option value="Recount">Recount</option>
+                    <option value="Stock Correction">Stock Correction</option>
+                    <option value="Opening Inventory">Opening Inventory</option>
+                </select>
+            </div>
+
+            <div class="sc-modal-footer">
+                <button class="sc-btn" id="btnCancelModal">Cancel</button>
+                <button class="sc-btn sc-btn--success" id="btnConfirmUpdates">
+                    <span class="material-icons-round" style="font-size:18px;">cloud_upload</span> Confirm & Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sd-toast" id="scToast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth.js"></script>
+    <script src="stock-count.js"></script>
+
+    <script>
+        const _pw = document.getElementById('profileWrapper');
+        const _pb = document.getElementById('profileBtn');
+        if (_pb) _pb.addEventListener('click', e => { e.stopPropagation(); _pw.classList.toggle('open'); });
+        document.addEventListener('click', () => { if (_pw) _pw.classList.remove('open'); });
+    </script>
+
+</body>
+
+</html>

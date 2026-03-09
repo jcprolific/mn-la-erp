@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MN+LA Master Access</title>
+  <meta name="description"
+    content="MN+LA Master Access – Operational ERP Dashboard for store operations, inventory, ecommerce, manufacturing, HR, finance, and accounting." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+  <!-- Auth guard: redirect to login if not authenticated -->
+  <script>
+    (async function () {
+      // Wait for supabase-client.js to have set window.db
+      // auth.js will do .guard() which redirects synchronously after getSession()
+    })();
+  </script>
+
+  <!-- ==================== TOP NAV ==================== -->
+  <nav class="top-nav" id="topNav">
+    <div class="nav-left">
+      <button class="nav-icon-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+        <span class="material-icons-round">menu</span>
+      </button>
+      <div class="brand">
+        <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA">
+          <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white" stroke-width="8" />
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+            font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700"
+            letter-spacing="-2">MN+LA</text>
+        </svg>
+      </div>
+    </div>
+    <div class="nav-right">
+      <!-- User chip (populated by auth.js) -->
+      <div class="user-chip" id="userChip" style="display:none;"></div>
+
+      <button class="nav-icon-btn notification-btn" id="notifBtn" aria-label="Notifications">
+        <span class="material-icons-round">notifications</span>
+        <span class="nav-badge" id="navNotifBadge">12</span>
+      </button>
+
+      <!-- Logout button -->
+      <button class="logout-btn" id="logoutBtn" aria-label="Sign out" title="Sign out">
+        <span class="material-icons-round">logout</span>
+      </button>
+
+      <div class="profile-wrapper" id="profileWrapper">
+        <button class="profile-btn" id="profileBtn" aria-label="User menu">
+          <span class="profile-avatar" id="profileAvatar">--</span>
+          <span class="material-icons-round profile-chevron">expand_more</span>
+        </button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="dropdown-header">
+            <strong id="dropdownName">&mdash;</strong>
+            <small id="dropdownRole">&mdash;</small>
+          </div>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item"><span class="material-icons-round">person</span> My Profile</a>
+          <a href="#" class="dropdown-item"><span class="material-icons-round">settings</span> Settings</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item dropdown-item--danger" id="dropdownLogout"><span
+              class="material-icons-round">logout</span> Sign Out</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="main-content">
+
+    <!-- ===== SECTION 1 – NOTIFICATION SUMMARY ===== -->
+    <section class="section" id="notificationsSection">
+      <h2 class="section-title"><span class="material-icons-round section-icon">notifications_active</span> Notification
+        Summary</h2>
+      <div class="notif-scroll" id="notifScroll">
+        <!-- JS-rendered -->
+      </div>
+    </section>
+
+    <!-- ===== SECTION 2 – MASTER MODULE GRID ===== -->
+    <section class="section" id="modulesSection">
+
+      <!-- Store Operations -->
+      <div class="module-group">
+        <h3 class="group-title"><span class="material-icons-round group-icon">storefront</span> Store Operations</h3>
+        <div class="module-grid" id="gridStoreOps"></div>
+      </div>
+
+      <!-- Inventory & Warehouse -->
+      <div class="module-group">
+        <h3 class="group-title"><span class="material-icons-round group-icon">inventory_2</span> Inventory &amp;
+          Warehouse</h3>
+        <div class="module-grid" id="gridInventory"></div>
+      </div>
+
+      <!-- Ecommerce -->
+      <div class="module-group">
+        <h3 class="group-title"><span class="material-icons-round group-icon">language</span> Ecommerce</h3>
+        <div class="module-grid" id="gridEcommerce"></div>
+      </div>
+
+      <!-- Manufacturing -->
+      <div class="module-group">
+        <h3 class="group-title"><span class="material-icons-round group-icon">precision_manufacturing</span>
+          Manufacturing</h3>
+        <div class="module-grid" id="gridManufacturing"></div>
+      </div>
+
+      <!-- HR -->
+      <div class="module-group">
+        <h3 class="group-title"><span class="material-icons-round group-icon">groups</span> HR</h3>
+        <div class="module-grid" id="gridHR"></div>
+      </div>
+
+      <!-- Finance -->
+      <div class="module-group">
+        <h3 class="group-title"><span class="material-icons-round group-icon">account_balance</span> Finance</h3>
+        <div class="module-grid" id="gridFinance"></div>
+      </div>
+
+      <!-- Accounting -->
+      <div class="module-group">
+        <h3 class="group-title"><span class="material-icons-round group-icon">receipt_long</span> Accounting</h3>
+        <div class="module-grid" id="gridAccounting"></div>
+      </div>
+
+    </section>
+
+    <!-- ===== SECTION 3 – PENDING ACTIONS ===== -->
+    <section class="section" id="pendingSection">
+      <h2 class="section-title"><span class="material-icons-round section-icon">pending_actions</span> Pending Actions
+      </h2>
+      <div class="pending-list" id="pendingList">
+        <!-- JS-rendered -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mobile menu overlay -->
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+  <aside class="mobile-sidebar" id="mobileSidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA">
+          <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white" stroke-width="8" />
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+            font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700"
+            letter-spacing="-2">MN+LA</text>
+        </svg>
+      </div>
+      <button class="nav-icon-btn" id="closeSidebar" aria-label="Close menu">
+        <span class="material-icons-round">close</span>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#notificationsSection" class="sidebar-link active"><span
+          class="material-icons-round">notifications_active</span> Notifications</a>
+      <a href="#modulesSection" class="sidebar-link"><span class="material-icons-round">grid_view</span> Modules</a>
+      <a href="#pendingSection" class="sidebar-link"><span class="material-icons-round">pending_actions</span> Pending
+        Actions</a>
+      <div class="dropdown-divider"></div>
+      <a href="#" class="sidebar-link"><span class="material-icons-round">person</span> My Profile</a>
+      <a href="#" class="sidebar-link"><span class="material-icons-round">settings</span> Settings</a>
+      <a href="#" id="sidebarLogout" class="sidebar-link sidebar-link--danger"><span
+          class="material-icons-round">logout</span> Sign Out</a>
+    </nav>
+  </aside>
+
+  <!-- Toast container -->
+  <div id="toastContainer"></div>
+
+  <!-- Supabase CDN (UMD build – must come before supabase-client.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase client: window.db -->
+  <script src="supabase-client.js"></script>
+  <!-- Auth module: window.Auth -->
+  <script src="auth.js"></script>
+  <!-- Dashboard logic -->
+  <script src="app.js"></script>
+
+  <script>
+    // Auth guard + header population + welcome toast
+    (async function () {
+      await window.Auth.guard(); // redirects to login.html if not signed in
+
+      const profile = window.Auth.profile;
+      if (profile) {
+        // Avatar initials
+        const initials = (profile.full_name || 'U')
+          .split(' ').map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+        var avatarEl = document.getElementById('profileAvatar');
+        if (avatarEl) avatarEl.textContent = initials;
+
+        // Dropdown header
+        var dropName = document.getElementById('dropdownName');
+        var dropRole = document.getElementById('dropdownRole');
+        if (dropName) dropName.textContent = profile.full_name || 'User';
+        if (dropRole) dropRole.textContent = profile.role || '';
+      }
+
+      // Logout handlers
+      function doLogout(e) { e.preventDefault(); window.Auth.logout(); }
+      var logoutBtn = document.getElementById('logoutBtn');
+      var dropdownLogout = document.getElementById('dropdownLogout');
+      if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
+      if (dropdownLogout) dropdownLogout.addEventListener('click', doLogout);
+
+      // Sidebar sign-out link
+      var sidebarLogout = document.getElementById('sidebarLogout');
+      if (sidebarLogout) sidebarLogout.addEventListener('click', doLogout);
+
+      // Welcome toast (set by login.js in sessionStorage)
+      var welcome = sessionStorage.getItem('mnla_welcome');
+      if (welcome) {
+        sessionStorage.removeItem('mnla_welcome');
+        try {
+          var w = JSON.parse(welcome);
+          window.Auth.toast('Welcome, ' + w.full_name + ' (' + w.role + ') \u2728', 'success');
+        } catch (_) { }
+      }
+    })();
+  </script>
+
+</body>
+
+</html>

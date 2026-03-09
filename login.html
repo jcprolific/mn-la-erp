@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In – MN+LA ERP</title>
+    <meta name="description" content="Sign in to MN+LA Master Access ERP system." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="login-page">
+
+    <!-- ==================== LOGIN WRAPPER ==================== -->
+    <div class="login-wrapper">
+
+        <!-- Logo -->
+        <div class="login-logo">
+            <svg viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" aria-label="MN+LA" role="img">
+                <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white" stroke-width="8" />
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+                    font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700"
+                    letter-spacing="-2">MN+LA</text>
+            </svg>
+            <p class="login-tagline">Master Access</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="login-card" role="main">
+            <h1 class="login-card__title">Sign in</h1>
+            <p class="login-card__subtitle">Enter your credentials to continue</p>
+
+            <!-- Error box (hidden by default) -->
+            <div class="login-error" id="loginError" role="alert" style="display:none;">
+                <span class="material-icons-round">error_outline</span>
+                <span id="loginErrorText"></span>
+            </div>
+            <div class="login-fix-steps-wrap" id="loginFixStepsWrap" style="margin-top:8px;display:none;">
+                <a href="#" class="link" id="loginShowFixSteps" style="font-size:13px;">Having trouble? Show fix steps</a>
+                <div id="loginFixSteps" style="display:none;margin-top:10px;padding:12px;background:rgba(255,255,255,0.06);border-radius:8px;font-size:12px;line-height:1.5;text-align:left;">
+                    <strong>1.</strong> Supabase → SQL Editor. Run full <code>FIX_LOGIN_PROFILES_RUN_IN_SUPABASE.sql</code> (copy SQL from file, paste, Run).<br>
+                    <strong>2.</strong> Same: run <code>UPDATE auth.users SET confirmation_token = '' WHERE confirmation_token IS NULL;</code> (and recovery_token, email_change, email_change_token_new).<br>
+                    <strong>3.</strong> If permission denied: Authentication → Add user (new email, Auto Confirm), then sign in with that user.<br>
+                    <strong>4.</strong> Hard refresh (Ctrl+Shift+R), try Sign In again.<br>
+                    <strong>5.</strong> Full checklist: <code>docs/LOGIN_FIX_CHECKLIST.md</code>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form id="loginForm" class="login-form" novalidate>
+
+                <div class="form-field">
+                    <label class="form-label" for="loginEmail">Email address</label>
+                    <input class="input" id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email"
+                        required />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <div class="input-wrapper">
+                        <input class="input" id="loginPassword" type="password" placeholder="••••••••"
+                            autocomplete="current-password" required />
+                        <button type="button" class="input-toggle-pw" id="togglePassword"
+                            aria-label="Toggle password visibility">
+                            <span class="material-icons-round" id="togglePasswordIcon">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn--primary btn--full" id="loginSubmit">
+                    Sign In
+                </button>
+
+                <div class="login-divider">
+                    <span>or</span>
+                </div>
+
+                <button type="button" class="btn btn--demo btn--full" id="demoLogin">
+                    <span class="material-icons-round"
+                        style="font-size:18px;vertical-align:middle;margin-right:6px;">play_circle_outline</span>
+                    Enter as Demo
+                </button>
+
+                <div class="login-links">
+                    <a href="#" class="link" id="forgotPassword">Forgot password?</a>
+                </div>
+
+            </form>
+        </div>
+
+        <p class="login-footer">MN+LA ERP &copy; 2025 &nbsp;·&nbsp; All rights reserved</p>
+    </div>
+
+    <!-- Toast container (injected by auth.js) -->
+    <div id="toastContainer"></div>
+
+    <!-- Scripts: Supabase → client → auth → login logic -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth.js"></script>
+    <script src="login.js"></script>
+
+    <!-- Password visibility toggle -->
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const inp = document.getElementById('loginPassword');
+            const icon = document.getElementById('togglePasswordIcon');
+            const show = inp.type === 'password';
+            inp.type = show ? 'text' : 'password';
+            icon.textContent = show ? 'visibility_off' : 'visibility';
+        });
+        document.getElementById('loginShowFixSteps').addEventListener('click', function (e) {
+            e.preventDefault();
+            var el = document.getElementById('loginFixSteps');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        });
+    </script>
+
+</body>
+
+</html>

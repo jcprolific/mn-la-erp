@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Store Dashboard — MN+LA ERP</title>
+  <meta name="description"
+    content="MN+LA Store Dashboard — per-branch sales, inventory, and actions for store staff." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ─────────────────────────────────────────
+       Store Dashboard — Enhanced Premium Styles
+    ───────────────────────────────────────── */
+
+    /* ── Store layout: sidebar + main ── */
+    .store-layout {
+      display: flex;
+      min-height: calc(100vh - var(--nav-height));
+      padding-top: var(--nav-height);
+    }
+    .store-sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      background: var(--bg-secondary);
+      border-right: 1px solid rgba(255, 255, 255, .06);
+      padding: 16px 0;
+    }
+    .store-sidebar__header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px 12px;
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--text-muted);
+    }
+    .store-sidebar__header .material-icons-round { font-size: 1rem; }
+    .store-sidebar__nav { display: flex; flex-direction: column; gap: 2px; }
+    .store-sidebar__link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      font-size: .85rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+    .store-sidebar__link .material-icons-round { font-size: 1.1rem; }
+    .store-sidebar__link:hover { background: rgba(255,255,255,.05); color: var(--text-primary); }
+    .store-sidebar__link.active { background: rgba(122,159,196,.12); color: #7a9fc4; font-weight: 600; }
+    .store-main { flex: 1; overflow: auto; }
+
+    /* ── Page container ── */
+    .sd-page {
+      padding: 20px 24px 80px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Page header */
+    .sd-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Top bar ── */
+    .sd-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* Back breadcrumb */
+    .sd-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      font-size: .78rem;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 6px 12px 6px 8px;
+      border-radius: 8px;
+      transition: all .18s;
+    }
+
+    .sd-back:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, .05);
+    }
+
+    .sd-back .material-icons-round {
+      font-size: 16px;
+    }
+
+    /* Store selector — glassy pill */
+    .sd-store-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(122, 159, 196, .07);
+      border: 1px solid rgba(122, 159, 196, .25);
+      border-radius: 12px;
+      padding: 9px 16px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .sd-store-selector:hover {
+      background: rgba(122, 159, 196, .14);
+      border-color: rgba(122, 159, 196, .45);
+      box-shadow: 0 0 20px rgba(122, 159, 196, .12);
+    }
+
+    .sd-store-selector .material-icons-round {
+      color: #7a9fc4;
+      font-size: 18px;
+    }
+
+    .sd-store-selector select {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: .88rem;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 200px;
+      letter-spacing: -.01em;
+    }
+
+    .sd-store-selector select option {
+      background: #141414;
+    }
+
+    .sd-header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sd-header-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, rgba(122, 159, 196, .2), rgba(122, 159, 196, .07));
+      border: 1px solid rgba(122, 159, 196, .3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7a9fc4;
+      font-size: 24px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 20px rgba(122, 159, 196, .12);
+    }
+
+    .sd-header-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -.035em;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+
+    .sd-header-sub {
+      font-size: .76rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Live badge */
+    .sd-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(52, 211, 153, .06);
+      border: 1px solid rgba(52, 211, 153, .22);
+      font-size: .68rem;
+      font-weight: 700;
+      color: #34d399;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .sd-live-badge::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
+      animation: sd-pulse 1.8s infinite;
+    }
+
+    @keyframes sd-pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: .35;
+        transform: scale(.82);
+      }
+    }
+
+    /* ── Action row ── */
+    .sd-barcode-quick { }
+    .sd-barcode-quick__link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      background: rgba(122, 159, 196, .12);
+      border: 1px solid rgba(122, 159, 196, .35);
+      border-radius: 12px;
+      color: #aac8e8;
+      font-weight: 600;
+      font-size: .95rem;
+      text-decoration: none;
+      transition: background .15s, border-color .15s;
+    }
+    .sd-barcode-quick__link:hover {
+      background: rgba(122, 159, 196, .2);
+      border-color: rgba(122, 159, 196, .5);
+    }
+    .sd-barcode-quick__link .material-icons-round:first-child { font-size: 22px; }
+    .sd-barcode-quick__link .material-icons-round:last-child { font-size: 18px; opacity: .9; }
+
+    .sd-action-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .sd-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 18px;
+      border-radius: 11px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s ease;
+      white-space: nowrap;
+    }
+
+    .sd-action-btn .material-icons-round {
+      font-size: 17px;
+    }
+    a.sd-action-btn {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .sd-action-btn:hover {
+      background: var(--bg-elevated);
+      border-color: rgba(255, 255, 255, .2);
+      color: var(--text-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+    }
+
+    .sd-action-btn--primary {
+      background: rgba(122, 159, 196, .1);
+      border-color: rgba(122, 159, 196, .3);
+      color: #7a9fc4;
+    }
+
+    .sd-action-btn--primary:hover {
+      background: rgba(122, 159, 196, .2);
+      border-color: rgba(122, 159, 196, .5);
+      color: #aac8e8;
+      box-shadow: 0 6px 24px rgba(122, 159, 196, .18);
+    }
+
+    /* ── Section header ── */
+    .sd-section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .sd-section-title {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -.015em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sd-section-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #7a9fc4, rgba(122, 159, 196, .25));
+    }
+
+    /* Search / filter bar */
+    .sd-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 10px;
+      padding: 9px 14px;
+      min-width: 220px;
+      transition: border-color .15s;
+    }
+
+    .sd-search-bar:focus-within {
+      border-color: rgba(122, 159, 196, .4);
+    }
+
+    .sd-search-bar .material-icons-round {
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    .sd-search-bar input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: .83rem;
+    }
+
+    .sd-search-bar input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* ── Filter tabs ── */
+    .sd-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .sd-tab {
+      padding: 6px 15px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, .07);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: .74rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .16s;
+      letter-spacing: .02em;
+    }
+
+    .sd-tab:hover {
+      border-color: rgba(255, 255, 255, .16);
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, .03);
+    }
+
+    .sd-tab.active {
+      border-color: rgba(122, 159, 196, .45);
+      color: #7a9fc4;
+      background: rgba(122, 159, 196, .1);
+      font-weight: 700;
+      box-shadow: 0 0 12px rgba(122, 159, 196, .1);
+    }
+
+    /* ── Product cards ── */
+    .sd-product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 14px;
+    }
+
+    @keyframes sd-card-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .sd-product-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .05);
+      border-radius: 16px;
+      padding: 18px 18px 14px;
+      transition: all .2s ease;
+      position: relative;
+      overflow: hidden;
+      animation: sd-card-in .25s ease both;
+    }
+
+    .sd-product-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(122, 159, 196, .3), transparent);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .sd-product-card:hover {
+      border-color: rgba(122, 159, 196, .2);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .35);
+    }
+
+    .sd-product-card:hover::before {
+      opacity: 1;
+    }
+
+    .sd-product-name {
+      font-size: .87rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+      line-height: 1.35;
+      letter-spacing: -.01em;
+    }
+
+    .sd-product-sku {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: .67rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      letter-spacing: .04em;
+    }
+
+    /* Size rows */
+    .sd-size-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .sd-size-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .03);
+    }
+
+    .sd-size-row:last-child {
+      border-bottom: none;
+    }
+
+    .sd-size-label {
+      width: 32px;
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .sd-size-bar-wrap {
+      flex: 1;
+      height: 5px;
+      background: rgba(255, 255, 255, .05);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .sd-size-bar {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, rgba(122, 159, 196, .55), rgba(122, 159, 196, .9));
+      transition: width .4s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .sd-size-bar--low {
+      background: linear-gradient(90deg, rgba(168, 147, 92, .5), rgba(168, 147, 92, .85));
+    }
+
+    .sd-size-bar--zero {
+      background: rgba(255, 255, 255, .05);
+    }
+
+    .sd-size-qty {
+      width: 28px;
+      text-align: right;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .sd-size-status {
+      font-size: .65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .sd-size-status--low {
+      background: rgba(168, 147, 92, .12);
+      color: #a8935c;
+    }
+
+    .sd-size-status--out {
+      background: rgba(160, 120, 120, .12);
+      color: #a07878;
+    }
+
+    /* Restock button (on card footer) */
+    .sd-card-footer {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, .05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .sd-card-status {
+      font-size: .7rem;
+      color: var(--text-muted);
+    }
+
+    .sd-restock-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 7px;
+      border: 1px solid rgba(168, 147, 92, .3);
+      background: rgba(168, 147, 92, .08);
+      color: #a8935c;
+      font-family: inherit;
+      font-size: .72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .sd-restock-btn .material-icons-round {
+      font-size: 14px;
+    }
+
+    .sd-restock-btn:hover {
+      background: rgba(168, 147, 92, .16);
+      border-color: rgba(168, 147, 92, .5);
+      color: #c4ae72;
+    }
+
+    /* ── Modals ── */
+    .sd-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, .75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .sd-modal-overlay.open {
+      display: flex;
+    }
+
+    .sd-modal {
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 22px;
+      padding: 30px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, .65), 0 0 0 1px rgba(255, 255, 255, .04);
+      animation: sd-modal-in .22s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    @keyframes sd-modal-in {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .sd-modal--wide {
+      max-width: 640px;
+    }
+
+    .sd-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+    }
+
+    .sd-modal-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -.02em;
+    }
+
+    .sd-modal-title .material-icons-round {
+      color: #7a9fc4;
+      font-size: 20px;
+    }
+
+    .sd-modal-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 0;
+      transition: all .15s;
+    }
+
+    .sd-modal-close:hover {
+      background: rgba(255, 255, 255, .1);
+      color: var(--text-primary);
+    }
+
+    /* Form groups */
+    .sd-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .sd-form-full {
+      margin-bottom: 14px;
+    }
+
+    .sd-form-group label {
+      display: block;
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .sd-form-group input,
+    .sd-form-group select,
+    .sd-form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 9px;
+      background: var(--bg-primary);
+      border: 1px solid rgba(255, 255, 255, .09);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: .84rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color .15s;
+    }
+
+    .sd-form-group input:focus,
+    .sd-form-group select:focus,
+    .sd-form-group textarea:focus {
+      border-color: rgba(122, 159, 196, .4);
+    }
+
+    .sd-form-group select option {
+      background: #1a1a1a;
+    }
+
+    .sd-form-group textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+
+    /* Payment type toggle */
+    .sd-pay-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .sd-pay-btn {
+      flex: 1;
+      padding: 9px 0;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .sd-pay-btn.active {
+      border-color: rgba(122, 159, 196, .4);
+      background: rgba(122, 159, 196, .1);
+      color: #7a9fc4;
+    }
+
+    /* Sale item rows inside modal */
+    .sd-sale-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .sd-sale-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-primary);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 9px;
+      padding: 10px 12px;
+    }
+
+    .sd-sale-item-name {
+      flex: 1;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .sd-sale-item-qty {
+      font-size: .78rem;
+      color: var(--text-muted);
+      width: 40px;
+      text-align: center;
+    }
+
+    .sd-sale-item-price {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .sd-sale-remove {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px;
+    }
+
+    .sd-sale-remove:hover {
+      color: #a07878;
+    }
+
+    .sd-sale-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, .06);
+      padding-top: 14px;
+      margin-bottom: 18px;
+    }
+
+    .sd-sale-total-label {
+      font-size: .82rem;
+      color: var(--text-muted);
+    }
+
+    .sd-sale-total-val {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* Modal footer */
+    .sd-modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      border-top: 1px solid rgba(255, 255, 255, .06);
+      padding-top: 18px;
+      margin-top: 6px;
+    }
+
+    .sd-btn-cancel {
+      padding: 10px 20px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .1);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: .84rem;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .sd-btn-cancel:hover {
+      background: rgba(255, 255, 255, .1);
+    }
+
+    .sd-btn-confirm {
+      padding: 10px 26px;
+      border-radius: 10px;
+      background: rgba(122, 159, 196, .18);
+      border: 1px solid rgba(122, 159, 196, .35);
+      color: #aac8e8;
+      font-family: inherit;
+      font-size: .84rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .sd-btn-confirm:hover {
+      background: rgba(122, 159, 196, .28);
+      border-color: rgba(122, 159, 196, .5);
+      color: #c5dcef;
+      transform: translateY(-1px);
+    }
+
+    /* Sales report table */
+    .sd-report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+    }
+
+    .sd-report-table th {
+      padding: 8px 12px;
+      text-align: left;
+      font-size: .65rem;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+    }
+
+    .sd-report-table td {
+      padding: 10px 12px;
+      font-size: .78rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+    }
+
+    .sd-report-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .sd-report-summary {
+      background: var(--bg-primary);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .sd-report-kv {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sd-report-kv-label {
+      font-size: .68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--text-muted);
+    }
+
+    .sd-report-kv-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* Toast */
+    .sd-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(18, 22, 34, .95);
+      border: 1px solid rgba(122, 159, 196, .35);
+      color: #7a9fc4;
+      padding: 12px 26px;
+      border-radius: 14px;
+      font-size: .82rem;
+      font-weight: 600;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+      z-index: 2000;
+      transition: transform .3s cubic-bezier(.4, 0, .2, 1), opacity .3s ease;
+      opacity: 0;
+      white-space: nowrap;
+      backdrop-filter: blur(14px);
+    }
+
+    .sd-toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .sd-toast--success {
+      border-color: rgba(52, 211, 153, .35);
+      color: #34d399;
+      background: rgba(8, 26, 18, .95);
+    }
+
+    .sd-toast--amber {
+      border-color: rgba(168, 147, 92, .35);
+      color: #a8935c;
+      background: rgba(26, 20, 8, .95);
+    }
+
+    /* Restock modal store indicator */
+    .sd-restock-info {
+      background: rgba(168, 147, 92, .07);
+      border: 1px solid rgba(168, 147, 92, .2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sd-restock-info .material-icons-round {
+      color: #a8935c;
+      font-size: 18px;
+    }
+
+    .sd-restock-info-text {
+      font-size: .8rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .sd-restock-info-text strong {
+      color: var(--text-primary);
+    }
+
+    /* Empty state */
+    .sd-empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      font-size: .85rem;
+    }
+
+    .sd-empty .material-icons-round {
+      font-size: 40px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    /* ── Stat Cards Grid ── */
+    .sd-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .sd-stat {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 16px;
+      padding: 18px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+      transition: all .2s ease;
+    }
+
+    .sd-stat::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--sc, rgba(122, 159, 196, .4)), transparent);
+      opacity: .6;
+    }
+
+    .sd-stat:hover {
+      border-color: rgba(255, 255, 255, .12);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .3);
+    }
+
+    .sd-stat__icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--si, rgba(122, 159, 196, .1));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+      color: var(--sic, #7a9fc4);
+    }
+
+    .sd-stat__icon .material-icons-round {
+      font-size: 18px;
+    }
+
+    .sd-stat__value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -.04em;
+      line-height: 1;
+    }
+
+    .sd-stat__value--sm {
+      font-size: .88rem;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      line-height: 1.3;
+    }
+
+    .sd-stat__label {
+      font-size: .69rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* Responsive */
+    @media(max-width:600px) {
+      .sd-form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sd-product-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sd-store-selector select {
+        min-width: 150px;
+      }
+
+      .sd-page {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ════ TOP NAV ════ -->
+  <nav class="top-nav" id="topNav">
+    <div class="nav-left">
+      <button class="nav-icon-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+        <span class="material-icons-round">menu</span>
+      </button>
+      <div class="brand">
+        <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA">
+          <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white" stroke-width="8" />
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+            font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700"
+            letter-spacing="-2">MN+LA</text>
+        </svg>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="nav-icon-btn" id="notifBtn" aria-label="Notifications">
+        <span class="material-icons-round">notifications</span>
+        <span class="nav-badge" style="display:none;">0</span>
+      </button>
+      <button class="logout-btn" id="logoutBtn" aria-label="Sign out" type="button">
+        <span class="material-icons-round">logout</span>
+      </button>
+      <div class="profile-wrapper" id="profileWrapper">
+        <button class="profile-btn" id="profileBtn" aria-label="User menu">
+          <span class="profile-avatar" id="profileAvatar">DU</span>
+          <span class="material-icons-round profile-chevron">expand_more</span>
+        </button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="dropdown-header">
+            <strong id="dropdownName">Store Staff</strong>
+            <small id="dropdownRole">Store</small>
+          </div>
+          <div class="dropdown-divider"></div>
+          <a href="index.html" class="dropdown-item store-hide-for-associate" data-store-hide><span class="material-icons-round">home</span> Master Dashboard</a>
+          <a href="inventory.html" class="dropdown-item store-hide-for-associate" data-store-hide><span class="material-icons-round">warehouse</span> Inventory &amp; Warehouse</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item dropdown-item--danger" id="storeLogout" data-action="logout"><span class="material-icons-round">logout</span> Sign Out</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ════ STORE LAYOUT: SIDEBAR + MAIN ════ -->
+  <div class="store-layout">
+    <aside class="store-sidebar">
+      <div class="store-sidebar__header">
+        <span class="material-icons-round">storefront</span>
+        <span>Store</span>
+      </div>
+      <nav class="store-sidebar__nav">
+        <a href="store.html" class="store-sidebar__link active"><span class="material-icons-round">dashboard</span> Dashboard</a>
+        <a href="store-inventory-in.html" class="store-sidebar__link"><span class="material-icons-round">input</span> Inventory In</a>
+        <a href="store-inventory-out.html" class="store-sidebar__link"><span class="material-icons-round">output</span> Inventory Out</a>
+        <a href="store-branch-stocks.html" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> Branch Stocks</a>
+        <a href="store-sales-today.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
+      </nav>
+    </aside>
+    <main class="sd-page store-main">
+
+    <!-- Top bar: back link (shown for owner/admin) + store selector -->
+    <div class="sd-topbar">
+      <a href="index.html" class="sd-back" id="sdBackLink" style="display:none;">
+        <span class="material-icons-round">arrow_back</span> Master Dashboard
+      </a>
+      <div class="sd-store-selector" id="storeSelectWrap">
+        <span class="material-icons-round">store</span>
+        <select id="storeSelect">
+          <option value="one-ayala">MN+LA™ ONE AYALA</option>
+          <option value="bgc">MN+LA™ BGC</option>
+          <option value="sm-mega">MN+LA™ SM MEGA MALL</option>
+          <option value="gateway">MN+LA™ ARTISAN CAFE GATEWAY II</option>
+          <option value="ciannat">MN+LA™ CIANNAT COMPLEX</option>
+          <option value="greenhills">MN+LA™ GREENHILLS</option>
+          <option value="sm-north">MN+LA™ SM NORTH EDSA</option>
+          <option value="sm-manila">MN+LA™ SM MANILA</option>
+        </select>
+        <span class="material-icons-round" style="font-size:16px;">expand_more</span>
+      </div>
+    </div>
+
+    <!-- Page header -->
+    <div class="sd-header">
+      <div class="sd-header-left">
+        <div class="sd-header-icon"><span class="material-icons-round">storefront</span></div>
+        <div>
+          <div class="sd-header-title" id="storeTitle">MN+LA™ ONE AYALA</div>
+          <div class="sd-header-sub">Store dashboard · Sales, inventory, and staff actions</div>
+        </div>
+      </div>
+      <span class="sd-live-badge">LIVE</span>
+    </div>
+
+    <!-- ── STAT CARDS (branch-scoped when store_associate) ── -->
+    <div class="sd-stat-grid" id="sdStatGrid">
+      <div class="sd-stat" style="--sc:rgba(122,173,138,.9); --si:rgba(122,173,138,.1); --sic:#7aad8a;">
+        <div class="sd-stat__icon"><span class="material-icons-round">point_of_sale</span></div>
+        <div class="sd-stat__value" id="sdStatSales">—</div>
+        <div class="sd-stat__label">Sales Today</div>
+      </div>
+      <div class="sd-stat" style="--sc:rgba(157,135,181,.9); --si:rgba(157,135,181,.1); --sic:#9d87b5;">
+        <div class="sd-stat__icon"><span class="material-icons-round">receipt_long</span></div>
+        <div class="sd-stat__value" id="sdStatTxn">—</div>
+        <div class="sd-stat__label">Transactions Today</div>
+      </div>
+      <div class="sd-stat" style="--sc:rgba(122,159,196,.9); --si:rgba(122,159,196,.1); --sic:#7a9fc4;">
+        <div class="sd-stat__icon"><span class="material-icons-round">inventory_2</span></div>
+        <div class="sd-stat__value" id="sdStatUnits">—</div>
+        <div class="sd-stat__label">Branch Stock Count</div>
+      </div>
+      <div class="sd-stat" style="--sc:rgba(168,147,92,.9); --si:rgba(168,147,92,.1); --sic:#a8935c;">
+        <div class="sd-stat__icon"><span class="material-icons-round">warning_amber</span></div>
+        <div class="sd-stat__value" id="sdStatLowStock">—</div>
+        <div class="sd-stat__label">Low Stock Items</div>
+      </div>
+      <div class="sd-stat" style="--sc:rgba(160,120,120,.9); --si:rgba(160,120,120,.1); --sic:#a07878;">
+        <div class="sd-stat__icon"><span class="material-icons-round">pending_actions</span></div>
+        <div class="sd-stat__value" id="sdStatPendingOut">—</div>
+        <div class="sd-stat__label">Pending Inventory Out</div>
+      </div>
+      <div class="sd-stat" style="--sc:rgba(122,173,138,.9); --si:rgba(122,173,138,.1); --sic:#7aad8a;">
+        <div class="sd-stat__icon"><span class="material-icons-round">payments</span></div>
+        <div class="sd-stat__value" id="sdStatCash">—</div>
+        <div class="sd-stat__label">Cash Sales Today</div>
+      </div>
+    </div>
+
+    <!-- ── BARCODE SCANNER QUICK ACCESS (visible on dashboard) ── -->
+    <div class="sd-barcode-quick" style="margin-bottom:20px;">
+      <a href="store-inventory-in.html" class="sd-barcode-quick__link">
+        <span class="material-icons-round">qr_code_scanner</span>
+        <span>Scan barcode to receive stock</span>
+        <span class="material-icons-round">arrow_forward</span>
+      </a>
+    </div>
+    <!-- ── ACTION BUTTONS (Phase 1: Inventory In, Out, Branch Stocks, Sales Today) ── -->
+    <div class="sd-action-row">
+      <a href="store-inventory-in.html" class="sd-action-btn sd-action-btn--primary">
+        <span class="material-icons-round">input</span> Inventory In (barcode)
+      </a>
+      <a href="store-inventory-out.html" class="sd-action-btn">
+        <span class="material-icons-round">output</span> Inventory Out
+      </a>
+      <a href="store-branch-stocks.html" class="sd-action-btn">
+        <span class="material-icons-round">inventory_2</span> Branch Stocks
+      </a>
+      <a href="store-sales-today.html" class="sd-action-btn">
+        <span class="material-icons-round">point_of_sale</span> Sales Today
+      </a>
+      <button class="sd-action-btn sd-hide-for-store-associate" id="btnQuickSale" style="display:none;">
+        <span class="material-icons-round">point_of_sale</span> Quick Sale
+      </button>
+      <button class="sd-action-btn sd-hide-for-store-associate" id="btnStockCount" onclick="window.location.href='stock-count.html'" style="display:none;">
+        <span class="material-icons-round">inventory</span> Stock Count
+      </button>
+      <button class="sd-action-btn sd-hide-for-store-associate" id="btnExchange" style="display:none;">
+        <span class="material-icons-round">swap_horiz</span> Exchange
+      </button>
+      <button class="sd-action-btn sd-hide-for-store-associate" id="btnRequestRestock" style="display:none;">
+        <span class="material-icons-round">move_to_inbox</span> Request Restock
+      </button>
+      <button class="sd-action-btn sd-hide-for-store-associate" id="btnDailySales" style="display:none;">
+        <span class="material-icons-round">summarize</span> Daily Sales Report
+      </button>
+    </div>
+
+    <!-- ── INVENTORY SECTION ── -->
+    <div class="sd-section-head">
+      <span class="sd-section-title">Store Inventory</span>
+      <div class="sd-search-bar">
+        <span class="material-icons-round">search</span>
+        <input type="text" id="sdSearch" placeholder="Search products…" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="sd-tabs">
+      <button class="sd-tab active" data-tab="all">All</button>
+      <button class="sd-tab" data-tab="low">Low Stock</button>
+      <button class="sd-tab" data-tab="out">Out of Stock</button>
+      <button class="sd-tab" data-tab="tees">Tees</button>
+      <button class="sd-tab" data-tab="pants">Pants</button>
+      <button class="sd-tab" data-tab="outerwear">Outerwear</button>
+      <button class="sd-tab" data-tab="accessories">Accessories</button>
+    </div>
+
+    <div class="sd-product-grid" id="sdProductGrid">
+      <!-- rendered by store.js -->
+    </div>
+
+    </main><!-- /.store-main -->
+  </div><!-- /.store-layout -->
+
+
+  <!-- ════ QUICK SALE MODAL ════ -->
+  <div class="sd-modal-overlay" id="quickSaleModal">
+    <div class="sd-modal">
+      <div class="sd-modal-header">
+        <div class="sd-modal-title">
+          <span class="material-icons-round">point_of_sale</span> Quick Sale
+        </div>
+        <button class="sd-modal-close" data-close="quickSaleModal">✕</button>
+      </div>
+
+      <div class="sd-form-grid">
+        <div class="sd-form-group">
+          <label>Product</label>
+          <select id="qsProduct">
+            <option value="">Select product…</option>
+          </select>
+        </div>
+        <div class="sd-form-group">
+          <label>Size</label>
+          <select id="qsSize">
+            <option value="">—</option>
+          </select>
+        </div>
+      </div>
+      <div class="sd-form-grid">
+        <div class="sd-form-group">
+          <label>Quantity</label>
+          <input type="number" id="qsQty" min="1" value="1" />
+        </div>
+        <div class="sd-form-group">
+          <label>Price (₱)</label>
+          <input type="number" id="qsPrice" placeholder="0.00" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label
+          style="display:block;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:8px;">Payment
+          Method</label>
+        <div class="sd-pay-toggle">
+          <button class="sd-pay-btn active" data-pay="cash">Cash</button>
+          <button class="sd-pay-btn" data-pay="cod">COD</button>
+          <button class="sd-pay-btn" data-pay="card">Card</button>
+          <button class="sd-pay-btn" data-pay="gcash">GCash</button>
+        </div>
+      </div>
+
+      <div class="sd-form-full sd-form-group">
+        <label>Staff / Cashier</label>
+        <input type="text" id="qsStaff" placeholder="Name or ID" />
+      </div>
+
+      <div class="sd-modal-footer">
+        <button class="sd-btn-cancel" data-close="quickSaleModal">Cancel</button>
+        <button class="sd-btn-confirm" id="btnConfirmSale">
+          <span class="material-icons-round" style="font-size:15px;vertical-align:middle;margin-right:3px;">check</span>
+          Confirm Sale
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ INVENTORY OUT MODAL ════ -->
+  <div class="sd-modal-overlay" id="inventoryOutModal">
+    <div class="sd-modal">
+      <div class="sd-modal-header">
+        <div class="sd-modal-title">
+          <span class="material-icons-round">output</span> Inventory Out
+        </div>
+        <button class="sd-modal-close" data-close="inventoryOutModal">✕</button>
+      </div>
+      <div class="sd-form-grid">
+        <div class="sd-form-group">
+          <label>Product</label>
+          <select id="ioProduct">
+            <option value="">Select product…</option>
+          </select>
+        </div>
+        <div class="sd-form-group">
+          <label>Size</label>
+          <select id="ioSize">
+            <option value="">—</option>
+          </select>
+        </div>
+      </div>
+      <div class="sd-form-grid">
+        <div class="sd-form-group">
+          <label>Quantity</label>
+          <input type="number" id="ioQty" min="1" value="1" />
+        </div>
+        <div class="sd-form-group">
+          <label>Reason</label>
+          <select id="ioReason">
+            <option value="sold">Sold (no receipt)</option>
+            <option value="damaged">Damaged / Write-off</option>
+            <option value="display">Display use</option>
+            <option value="transfer">Transfer to other store</option>
+            <option value="return">Return to warehouse</option>
+          </select>
+        </div>
+      </div>
+      <div class="sd-form-full sd-form-group">
+        <label>Notes</label>
+        <textarea id="ioNotes" placeholder="Optional remarks…"></textarea>
+      </div>
+      <div class="sd-modal-footer">
+        <button class="sd-btn-cancel" data-close="inventoryOutModal">Cancel</button>
+        <button class="sd-btn-confirm" id="btnConfirmInvOut">Confirm Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ EXCHANGE MODAL ════ -->
+  <div class="sd-modal-overlay" id="exchangeModal">
+    <div class="sd-modal">
+      <div class="sd-modal-header">
+        <div class="sd-modal-title">
+          <span class="material-icons-round">swap_horiz</span> Exchange
+        </div>
+        <button class="sd-modal-close" data-close="exchangeModal">✕</button>
+      </div>
+      <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:18px;">Customer returns an item and receives a
+        replacement.</p>
+      <div
+        style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:8px;">
+        ITEM RETURNED</div>
+      <div class="sd-form-grid">
+        <div class="sd-form-group">
+          <label>Product</label>
+          <select id="exRetProduct">
+            <option value="">Select product…</option>
+          </select>
+        </div>
+        <div class="sd-form-group">
+          <label>Size</label>
+          <select id="exRetSize">
+            <option value="">—</option>
+          </select>
+        </div>
+      </div>
+      <div
+        style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:8px;margin-top:6px;">
+        ITEM GIVEN</div>
+      <div class="sd-form-grid">
+        <div class="sd-form-group">
+          <label>Product</label>
+          <select id="exNewProduct">
+            <option value="">Select product…</option>
+          </select>
+        </div>
+        <div class="sd-form-group">
+          <label>Size</label>
+          <select id="exNewSize">
+            <option value="">—</option>
+          </select>
+        </div>
+      </div>
+      <div class="sd-form-full sd-form-group">
+        <label>Staff</label>
+        <input type="text" id="exStaff" placeholder="Name or ID" />
+      </div>
+      <div class="sd-form-full sd-form-group">
+        <label>Reason</label>
+        <textarea id="exReason" placeholder="Size issue, defect, etc."></textarea>
+      </div>
+      <div class="sd-modal-footer">
+        <button class="sd-btn-cancel" data-close="exchangeModal">Cancel</button>
+        <button class="sd-btn-confirm" id="btnConfirmExchange">Confirm Exchange</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ REQUEST RESTOCK MODAL ════ -->
+  <div class="sd-modal-overlay" id="restockModal">
+    <div class="sd-modal">
+      <div class="sd-modal-header">
+        <div class="sd-modal-title">
+          <span class="material-icons-round" style="color:#a8935c;">move_to_inbox</span> Request Restock
+        </div>
+        <button class="sd-modal-close" data-close="restockModal">✕</button>
+      </div>
+
+      <div class="sd-restock-info">
+        <span class="material-icons-round">info</span>
+        <div class="sd-restock-info-text">
+          This request will be sent to the <strong>Warehouse team</strong> for fulfillment.
+          They will prepare and dispatch the items to your store.
+        </div>
+      </div>
+
+      <div class="sd-form-grid">
+        <div class="sd-form-group">
+          <label>Product</label>
+          <select id="rsProduct">
+            <option value="">Select product…</option>
+          </select>
+        </div>
+        <div class="sd-form-group">
+          <label>Size</label>
+          <select id="rsSize">
+            <option value="">—</option>
+          </select>
+        </div>
+      </div>
+      <div class="sd-form-grid">
+        <div class="sd-form-group">
+          <label>Quantity Requested</label>
+          <input type="number" id="rsQty" min="1" value="5" />
+        </div>
+        <div class="sd-form-group">
+          <label>Priority</label>
+          <select id="rsPriority">
+            <option value="normal">Normal</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+      <div class="sd-form-full sd-form-group">
+        <label>Requested By</label>
+        <input type="text" id="rsStaff" placeholder="Staff name or ID" />
+      </div>
+      <div class="sd-form-full sd-form-group">
+        <label>Notes to Warehouse</label>
+        <textarea id="rsNotes" placeholder="Optional context…"></textarea>
+      </div>
+      <div class="sd-modal-footer">
+        <button class="sd-btn-cancel" data-close="restockModal">Cancel</button>
+        <button class="sd-btn-confirm" id="btnConfirmRestock"
+          style="background:rgba(168,147,92,.16);border-color:rgba(168,147,92,.4);color:#c4ae72;">
+          <span class="material-icons-round" style="font-size:15px;vertical-align:middle;margin-right:3px;">send</span>
+          Send Restock Request
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ DAILY SALES REPORT MODAL ════ -->
+  <div class="sd-modal-overlay" id="salesReportModal">
+    <div class="sd-modal sd-modal--wide">
+      <div class="sd-modal-header">
+        <div class="sd-modal-title">
+          <span class="material-icons-round">summarize</span> Daily Sales Report
+        </div>
+        <button class="sd-modal-close" data-close="salesReportModal">✕</button>
+      </div>
+
+      <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <div class="sd-form-group" style="flex:1;margin-bottom:0;">
+          <input type="date" id="reportDate"
+            style="background:var(--bg-primary);border:1px solid rgba(255,255,255,.09);border-radius:9px;color:var(--text-primary);font-family:inherit;font-size:.83rem;padding:9px 12px;width:100%;outline:none;box-sizing:border-box;" />
+        </div>
+        <button class="sd-action-btn" id="btnGenerateReport" style="white-space:nowrap;">
+          <span class="material-icons-round">refresh</span> Generate
+        </button>
+        <button class="sd-action-btn" id="btnPrintReport" style="white-space:nowrap;">
+          <span class="material-icons-round">print</span> Print
+        </button>
+      </div>
+
+      <div class="sd-report-summary" style="margin-bottom:16px;" id="reportSummaryGrid">
+        <div class="sd-report-kv"><span class="sd-report-kv-label">Total Sales</span><span class="sd-report-kv-val"
+            id="rptTotal">₱0</span></div>
+        <div class="sd-report-kv"><span class="sd-report-kv-label">Transactions</span><span class="sd-report-kv-val"
+            id="rptTxn">0</span></div>
+        <div class="sd-report-kv"><span class="sd-report-kv-label">Cash</span><span class="sd-report-kv-val"
+            id="rptCash">₱0</span></div>
+        <div class="sd-report-kv"><span class="sd-report-kv-label">COD / Card</span><span class="sd-report-kv-val"
+            id="rptCod">₱0</span></div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="sd-report-table" id="sdReportTable">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Product</th>
+              <th>Size</th>
+              <th>Qty</th>
+              <th>Method</th>
+              <th>Amount</th>
+              <th>Staff</th>
+            </tr>
+          </thead>
+          <tbody id="sdReportBody"></tbody>
+        </table>
+      </div>
+
+      <div class="sd-modal-footer">
+        <button class="sd-btn-cancel" data-close="salesReportModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sd-toast" id="sdToast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+  <script src="auth.js"></script>
+  <script src="session.js"></script>
+  <script src="store.js"></script>
+
+  <!-- Auth guard: allow store_associate, owner, admin; redirect others to Master Dashboard -->
+  <script>
+    (async function () {
+      await window.Auth.guard();
+      var profile = window.Auth.profile;
+      if (!profile) return;
+
+      var allowedRoles = ['store_associate', 'owner', 'admin'];
+      if (!allowedRoles.includes(profile.role)) {
+        window.location.replace('index.html');
+        return;
+      }
+
+      var dropName = document.getElementById('dropdownName');
+      var dropRole = document.getElementById('dropdownRole');
+      var profileAvatar = document.getElementById('profileAvatar');
+      if (dropName) dropName.textContent = profile.full_name || 'User';
+      if (dropRole) dropRole.textContent = (profile.role || '') + (profile.locations && profile.locations.name ? ' • ' + profile.locations.name : '');
+      if (profileAvatar) profileAvatar.textContent = (profile.full_name || 'U').split(' ').map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+
+      function doLogout(e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        if (window.Auth && typeof window.Auth.logout === 'function') {
+          window.Auth.logout();
+        } else {
+          localStorage.removeItem('mnla_profile');
+          sessionStorage.removeItem('mnla_welcome');
+          window.location.replace('login.html');
+        }
+      }
+      var logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
+      var storeLogout = document.getElementById('storeLogout');
+      if (storeLogout) storeLogout.addEventListener('click', doLogout);
+
+      var storeSelect = document.getElementById('storeSelect');
+      var storeSelectWrap = document.querySelector('.sd-store-selector');
+      var backLink = document.getElementById('sdBackLink');
+
+      if (profile.role === 'store_associate' && storeSelect && storeSelectWrap && window.Session && window.Session.locationId()) {
+        storeSelect.innerHTML = '<option value="' + (window.Session.locationId() || '') + '">' + (window.Session.locationName() || 'My Branch') + '</option>';
+        storeSelect.disabled = true;
+        storeSelectWrap.title = 'Your assigned branch (read-only)';
+        if (backLink) backLink.style.display = 'none';
+        document.querySelectorAll('[data-store-hide]').forEach(function (el) { el.style.display = 'none'; });
+      } else {
+        if (backLink) backLink.style.display = 'inline-flex';
+        document.querySelectorAll('.sd-hide-for-store-associate').forEach(function (el) { el.style.display = ''; });
+      }
+
+      if (window.StoreDashboard && window.StoreDashboard.setStoreFromSession) window.StoreDashboard.setStoreFromSession();
+
+      var _pw = document.getElementById('profileWrapper');
+      var _pb = document.getElementById('profileBtn');
+      if (_pb) _pb.addEventListener('click', function (e) { e.stopPropagation(); _pw.classList.toggle('open'); });
+      document.addEventListener('click', function () { if (_pw) _pw.classList.remove('open'); });
+    })();
+  </script>
+
+</body>
+
+</html>

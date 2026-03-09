@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Factory Release — MN+LA ERP</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <style>
+        /* ── Page Layout ── */
+        .fr-page {
+            padding: 24px 20px 60px;
+        }
+
+        /* ── Module Header ── */
+        .fr-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .fr-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .fr-header-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(52, 211, 153, .2), rgba(52, 211, 153, .05));
+            border: 1px solid rgba(52, 211, 153, .25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #34d399;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .fr-header-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -.02em;
+            color: var(--text-primary);
+        }
+
+        .fr-header-sub {
+            font-size: .8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Barcode Scanner ── */
+        .fr-scanner-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 12px 18px;
+            margin-bottom: 24px;
+            transition: border-color .2s;
+        }
+
+        .fr-scanner-bar:focus-within {
+            border-color: rgba(52, 211, 153, .4);
+        }
+
+        .fr-scanner-bar .material-icons-round {
+            color: #34d399;
+            font-size: 20px;
+        }
+
+        .fr-scanner-bar input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: .9rem;
+        }
+
+        .fr-scanner-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .fr-scan-kbd {
+            font-size: .7rem;
+            color: var(--text-muted);
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 5px;
+            white-space: nowrap;
+        }
+
+        /* ── Stat Grid (reuses shared stat-card styles) ── */
+
+        /* ── Action Row ── */
+        .fr-action-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .fr-btn-primary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border-radius: 10px;
+            background: #34d399;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: .84rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: background .15s, transform .1s;
+        }
+
+        .fr-btn-primary:hover {
+            background: #2ec68a;
+            transform: translateY(-1px);
+        }
+
+        .fr-btn-primary .material-icons-round {
+            font-size: 18px;
+        }
+
+        /* ── Filters ── */
+        .fr-filter-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .fr-filter-btn {
+            padding: 6px 16px;
+            border-radius: 7px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: transparent;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: .78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .fr-filter-btn:hover {
+            border-color: rgba(255, 255, 255, .22);
+            color: var(--text-primary);
+        }
+
+        .fr-filter-btn.active {
+            border-color: rgba(52, 211, 153, .4);
+            color: #34d399;
+            background: rgba(52, 211, 153, .07);
+            font-weight: 600;
+        }
+
+        /* ── Queue Table ── */
+        .fr-table-card {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, .06);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .fr-table-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .fr-table-title {
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .fr-table-count {
+            font-size: .75rem;
+            color: var(--text-muted);
+        }
+
+        .fr-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .fr-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-size: .68rem;
+            font-weight: 600;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .05);
+        }
+
+        .fr-table td {
+            padding: 12px 16px;
+            font-size: .8rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+            vertical-align: middle;
+        }
+
+        .fr-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .fr-table tr:hover td {
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .fr-table .product-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            max-width: 200px;
+        }
+
+        .fr-table .sku-code {
+            font-family: monospace;
+            font-size: .75rem;
+            color: var(--text-muted);
+        }
+
+        .fr-table .ref-id {
+            font-family: monospace;
+            font-size: .78rem;
+            color: var(--text-secondary);
+        }
+
+        .fr-table .dest {
+            font-size: .78rem;
+        }
+
+        .fr-table .timestamp {
+            font-size: .73rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* Status badges */
+        .fr-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: .72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .fr-status::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .fr-status--pending {
+            background: rgba(245, 166, 35, .1);
+            color: #f5a623;
+        }
+
+        .fr-status--pending::before {
+            background: #f5a623;
+        }
+
+        .fr-status--released {
+            background: rgba(52, 211, 153, .1);
+            color: #34d399;
+        }
+
+        .fr-status--released::before {
+            background: #34d399;
+        }
+
+        .fr-status--confirmed {
+            background: rgba(96, 165, 250, .1);
+            color: #60a5fa;
+        }
+
+        .fr-status--confirmed::before {
+            background: #60a5fa;
+        }
+
+        /* ── Modal ── */
+        .fr-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, .7);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .fr-modal-overlay.open {
+            display: flex;
+        }
+
+        .fr-modal {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .5);
+            animation: fr-modal-in .2s ease;
+        }
+
+        @keyframes fr-modal-in {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .fr-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .fr-modal-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fr-modal-title .material-icons-round {
+            color: #34d399;
+            font-size: 20px;
+        }
+
+        .fr-modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .fr-modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* Scan bar inside modal */
+        .fr-scan-inline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(52, 211, 153, .06);
+            border: 1px solid rgba(52, 211, 153, .2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 20px;
+        }
+
+        .fr-scan-inline .material-icons-round {
+            color: #34d399;
+            font-size: 18px;
+        }
+
+        .fr-scan-inline input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: .85rem;
+        }
+
+        .fr-scan-inline input::placeholder {
+            color: rgba(52, 211, 153, .5);
+        }
+
+        /* Form */
+        .fr-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .fr-form-full {
+            margin-bottom: 14px;
+        }
+
+        .fr-form-group label {
+            display: block;
+            font-size: .72rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .fr-form-group input,
+        .fr-form-group select,
+        .fr-form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 9px;
+            background: var(--bg-primary);
+            border: 1px solid rgba(255, 255, 255, .09);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: .84rem;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color .15s;
+        }
+
+        .fr-form-group input:focus,
+        .fr-form-group select:focus,
+        .fr-form-group textarea:focus {
+            border-color: rgba(52, 211, 153, .4);
+        }
+
+        .fr-form-group select option {
+            background: #1e1e1e;
+        }
+
+        .fr-form-group textarea {
+            resize: vertical;
+            min-height: 72px;
+        }
+
+        /* Modal footer */
+        .fr-modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 22px;
+            border-top: 1px solid rgba(255, 255, 255, .06);
+            padding-top: 18px;
+        }
+
+        .fr-btn-cancel {
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .1);
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: .84rem;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .fr-btn-cancel:hover {
+            background: rgba(255, 255, 255, .1);
+        }
+
+        .fr-btn-confirm {
+            padding: 10px 28px;
+            border-radius: 10px;
+            background: #34d399;
+            border: none;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: .84rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s, transform .1s;
+        }
+
+        .fr-btn-confirm:hover {
+            background: #2ec68a;
+            transform: translateY(-1px);
+        }
+
+        /* Toast */
+        .fr-toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #1e2a20;
+            border: 1px solid rgba(52, 211, 153, .3);
+            color: #34d399;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: .82rem;
+            font-weight: 600;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .4);
+            z-index: 2000;
+            transition: transform .3s ease, opacity .3s ease;
+            opacity: 0;
+        }
+
+        .fr-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- TOP NAV -->
+    <nav class="top-nav" id="topNav">
+        <div class="nav-left">
+            <button class="nav-icon-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                <span class="material-icons-round">menu</span>
+            </button>
+            <div class="brand">
+                <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img"
+                    aria-label="MN+LA">
+                    <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white"
+                        stroke-width="8" />
+                    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+                        font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700"
+                        letter-spacing="-2">MN+LA</text>
+                </svg>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button class="nav-icon-btn" id="notifBtn" aria-label="Notifications">
+                <span class="material-icons-round">notifications</span>
+                <span class="nav-badge" style="display:none;">0</span>
+            </button>
+            <button class="logout-btn" id="logoutBtn" aria-label="Sign out" onclick="window.location.href='login.html'">
+                <span class="material-icons-round">logout</span>
+            </button>
+            <div class="profile-wrapper" id="profileWrapper">
+                <button class="profile-btn" id="profileBtn" aria-label="User menu">
+                    <span class="profile-avatar" id="profileAvatar">DU</span>
+                    <span class="material-icons-round profile-chevron">expand_more</span>
+                </button>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="dropdown-header">
+                        <strong>Warehouse Staff</strong>
+                        <small>Warehouse</small>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="index.html" class="dropdown-item"><span class="material-icons-round">home</span> Master
+                        Dashboard</a>
+                    <a href="inventory.html" class="dropdown-item"><span class="material-icons-round">warehouse</span>
+                        Inventory &amp; Warehouse</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="login.html" class="dropdown-item dropdown-item--danger"><span
+                            class="material-icons-round">logout</span> Sign Out</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="fr-page">
+        <!-- BACK + HEADER -->
+        <div style="margin-bottom:20px;">
+            <a href="inventory.html"
+                style="display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-size:.8rem;text-decoration:none;transition:color .15s;"
+                onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                <span class="material-icons-round" style="font-size:16px;">arrow_back</span> Inventory &amp; Warehouse
+            </a>
+        </div>
+
+        <div class="fr-header">
+            <div class="fr-header-left">
+                <div class="fr-header-icon"><span class="material-icons-round">output</span></div>
+                <div>
+                    <div class="fr-header-title">Factory Release</div>
+                    <div class="fr-header-sub">Log finished items released from the factory to Warehouse or Stores</div>
+                </div>
+            </div>
+            <button class="fr-btn-primary" id="btnCreateRelease">
+                <span class="material-icons-round">add</span> Create Factory Release
+            </button>
+        </div>
+
+        <!-- BARCODE SCANNER -->
+        <div class="fr-scanner-bar">
+            <span class="material-icons-round">qr_code_scanner</span>
+            <input type="text" id="barcodeInput" placeholder="Scan barcode or enter SKU to quickly add product…"
+                autocomplete="off" />
+            <span class="fr-scan-kbd">Press Enter</span>
+        </div>
+
+        <!-- STAT CARDS -->
+        <div class="stat-grid" style="margin-bottom:24px;">
+            <div class="stat-card" style="--sc:#34d399;">
+                <div class="stat-card__icon" style="background:rgba(52,211,153,.1);color:#34d399;"><span
+                        class="material-icons-round">pending_actions</span></div>
+                <div class="stat-card__value" id="statPending">0</div>
+                <div class="stat-card__label">Pending Release</div>
+            </div>
+            <div class="stat-card" style="--sc:#34d399;">
+                <div class="stat-card__icon" style="background:rgba(52,211,153,.1);color:#34d399;"><span
+                        class="material-icons-round">check_circle</span></div>
+                <div class="stat-card__value" id="statReleasedToday">0</div>
+                <div class="stat-card__label">Released Today</div>
+            </div>
+            <div class="stat-card" style="--sc:#34d399;">
+                <div class="stat-card__icon" style="background:rgba(52,211,153,.1);color:#34d399;"><span
+                        class="material-icons-round">inventory_2</span></div>
+                <div class="stat-card__value" id="statUnitsToday">0</div>
+                <div class="stat-card__label">Units Released Today</div>
+            </div>
+            <div class="stat-card" style="--sc:#34d399;">
+                <div class="stat-card__icon" style="background:rgba(52,211,153,.1);color:#34d399;"><span
+                        class="material-icons-round">hourglass_top</span></div>
+                <div class="stat-card__value" id="statAwaiting">0</div>
+                <div class="stat-card__label">Awaiting Confirmation</div>
+            </div>
+        </div>
+
+
+        <!-- FILTER + TABLE -->
+        <div class="fr-filter-row">
+            <button class="fr-filter-btn active" data-filter="today">Today</button>
+            <button class="fr-filter-btn" data-filter="week">This Week</button>
+            <button class="fr-filter-btn" data-filter="all">All</button>
+        </div>
+
+        <div class="fr-table-card">
+            <div class="fr-table-head">
+                <span class="fr-table-title">Release Queue</span>
+                <span class="fr-table-count" id="tableCount">— entries</span>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="fr-table" id="releaseTable">
+                    <thead>
+                        <tr>
+                            <th>Release ID</th>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Qty</th>
+                            <th>Destination</th>
+                            <th>Released By</th>
+                            <th>Status</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="releaseTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- CREATE FACTORY RELEASE MODAL -->
+    <div class="fr-modal-overlay" id="releaseModal">
+        <div class="fr-modal">
+            <div class="fr-modal-header">
+                <div class="fr-modal-title">
+                    <span class="material-icons-round">output</span> Create Factory Release
+                </div>
+                <button class="fr-modal-close" id="btnCloseModal">✕</button>
+            </div>
+
+            <!-- Scan inside modal -->
+            <div class="fr-scan-inline">
+                <span class="material-icons-round">qr_code_scanner</span>
+                <input type="text" id="modalScan" placeholder="Scan barcode or enter SKU…" autocomplete="off" />
+            </div>
+
+            <form id="releaseForm">
+                <div class="fr-form-grid">
+                    <div class="fr-form-group">
+                        <label>SKU / Barcode</label>
+                        <input type="text" id="relSku" placeholder="e.g. DJP-OBS-30" required />
+                    </div>
+                    <div class="fr-form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="relQty" min="1" value="1" required />
+                    </div>
+                </div>
+
+                <div class="fr-form-full fr-form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="relProductName" placeholder="Auto-fills from SKU…" />
+                </div>
+
+                <div class="fr-form-grid">
+                    <div class="fr-form-group">
+                        <label>Destination</label>
+                        <select id="relDestination" required>
+                            <option value="">Select…</option>
+                            <option value="Warehouse">Warehouse</option>
+                            <option value="MN+LA™ ONE AYALA">MN+LA™ ONE AYALA</option>
+                            <option value="MN+LA™ BGC">MN+LA™ BGC</option>
+                            <option value="MN+LA™ SM MEGA MALL">MN+LA™ SM MEGA MALL</option>
+                            <option value="MN+LA™ ARTISAN CAFE GATEWAY II">MN+LA™ ARTISAN CAFE GATEWAY II</option>
+                            <option value="MN+LA™ CIANNAT COMPLEX">MN+LA™ CIANNAT COMPLEX</option>
+                            <option value="MN+LA™ GREENHILLS">MN+LA™ GREENHILLS</option>
+                            <option value="MN+LA™ SM NORTH EDSA">MN+LA™ SM NORTH EDSA</option>
+                            <option value="MN+LA™ SM MANILA">MN+LA™ SM MANILA</option>
+                        </select>
+                    </div>
+                    <div class="fr-form-group">
+                        <label>Batch / Reference No.</label>
+                        <input type="text" id="relBatch" placeholder="e.g. BATCH-2026-031" />
+                    </div>
+                </div>
+
+                <div class="fr-form-full fr-form-group">
+                    <label>Released By</label>
+                    <input type="text" id="relReleasedBy" placeholder="Staff name or ID" required />
+                </div>
+
+                <div class="fr-form-full fr-form-group">
+                    <label>Notes</label>
+                    <textarea id="relNotes" placeholder="Optional remarks…"></textarea>
+                </div>
+
+                <div class="fr-modal-footer">
+                    <button type="button" class="fr-btn-cancel" id="btnCancelModal">Cancel</button>
+                    <button type="submit" class="fr-btn-confirm">
+                        <span class="material-icons-round"
+                            style="font-size:16px;vertical-align:middle;margin-right:4px;">check</span>
+                        Confirm Release
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="fr-toast" id="frToast"></div>
+
+    <script src="supabase-client.js"></script>
+    <script src="factory-release.js"></script>
+</body>
+
+</html>

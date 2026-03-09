@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Warehouse Dispatch — MN+LA ERP</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <style>
+        /* ── Page Layout ── */
+        .wd-page {
+            padding: 24px 20px 60px;
+        }
+
+        /* ── Module Header ── */
+        .wd-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .wd-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .wd-header-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(96, 165, 250, .2), rgba(96, 165, 250, .05));
+            border: 1px solid rgba(96, 165, 250, .25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #60a5fa;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .wd-header-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -.02em;
+            color: var(--text-primary);
+        }
+
+        .wd-header-sub {
+            font-size: .8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Barcode Scanner ── */
+        .wd-scanner-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 12px 18px;
+            margin-bottom: 24px;
+            transition: border-color .2s;
+        }
+
+        .wd-scanner-bar:focus-within {
+            border-color: rgba(96, 165, 250, .4);
+        }
+
+        .wd-scanner-bar .material-icons-round {
+            color: #60a5fa;
+            font-size: 20px;
+        }
+
+        .wd-scanner-bar input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: .9rem;
+        }
+
+        .wd-scanner-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .wd-scan-kbd {
+            font-size: .7rem;
+            color: var(--text-muted);
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 5px;
+            white-space: nowrap;
+        }
+
+        /* ── Stat Grid (reuses shared stat-card styles) ── */
+
+        /* ── Action Row ── */
+        .wd-action-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .wd-btn-primary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border-radius: 10px;
+            background: #60a5fa;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: .84rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: background .15s, transform .1s;
+        }
+
+        .wd-btn-primary:hover {
+            background: #4d96f0;
+            transform: translateY(-1px);
+        }
+
+        .wd-btn-primary .material-icons-round {
+            font-size: 18px;
+        }
+
+        /* ── Filters ── */
+        .wd-filter-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .wd-filter-btn {
+            padding: 6px 16px;
+            border-radius: 7px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: transparent;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: .78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .wd-filter-btn:hover {
+            border-color: rgba(255, 255, 255, .22);
+            color: var(--text-primary);
+        }
+
+        .wd-filter-btn.active {
+            border-color: rgba(96, 165, 250, .4);
+            color: #60a5fa;
+            background: rgba(96, 165, 250, .07);
+            font-weight: 600;
+        }
+
+        /* ── Dispatch Queue Table ── */
+        .wd-table-card {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, .06);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .wd-table-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .wd-table-title {
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .wd-table-count {
+            font-size: .75rem;
+            color: var(--text-muted);
+        }
+
+        .wd-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .wd-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-size: .68rem;
+            font-weight: 600;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .05);
+        }
+
+        .wd-table td {
+            padding: 12px 16px;
+            font-size: .8rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+            vertical-align: middle;
+        }
+
+        .wd-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .wd-table tr:hover td {
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .wd-table .product-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            max-width: 200px;
+        }
+
+        .wd-table .sku-code {
+            font-family: monospace;
+            font-size: .75rem;
+            color: var(--text-muted);
+        }
+
+        .wd-table .ref-id {
+            font-family: monospace;
+            font-size: .78rem;
+            color: var(--text-secondary);
+        }
+
+        .wd-table .timestamp {
+            font-size: .73rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* Destination type chip */
+        .dest-chip {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: .7rem;
+            font-weight: 600;
+        }
+
+        .dest-chip--store {
+            background: rgba(167, 139, 250, .1);
+            color: #a78bfa;
+        }
+
+        .dest-chip--jnt {
+            background: rgba(251, 146, 60, .1);
+            color: #fb923c;
+        }
+
+        .dest-chip--dhl {
+            background: rgba(251, 191, 36, .1);
+            color: #fbbf24;
+        }
+
+        .dest-chip--rider {
+            background: rgba(52, 211, 153, .1);
+            color: #34d399;
+        }
+
+        /* Status badges */
+        .wd-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: .72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .wd-status::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .wd-status--packing {
+            background: rgba(148, 163, 184, .1);
+            color: #94a3b8;
+        }
+
+        .wd-status--packing::before {
+            background: #94a3b8;
+        }
+
+        .wd-status--ready {
+            background: rgba(245, 166, 35, .1);
+            color: #f5a623;
+        }
+
+        .wd-status--ready::before {
+            background: #f5a623;
+        }
+
+        .wd-status--dispatched {
+            background: rgba(96, 165, 250, .1);
+            color: #60a5fa;
+        }
+
+        .wd-status--dispatched::before {
+            background: #60a5fa;
+        }
+
+        .wd-status--in-transit {
+            background: rgba(167, 139, 250, .1);
+            color: #a78bfa;
+        }
+
+        .wd-status--in-transit::before {
+            background: #a78bfa;
+        }
+
+        .wd-status--delivered {
+            background: rgba(52, 211, 153, .1);
+            color: #34d399;
+        }
+
+        .wd-status--delivered::before {
+            background: #34d399;
+        }
+
+        /* ── Modal ── */
+        .wd-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, .7);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .wd-modal-overlay.open {
+            display: flex;
+        }
+
+        .wd-modal {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 540px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .5);
+            animation: wd-modal-in .2s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes wd-modal-in {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .wd-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .wd-modal-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .wd-modal-title .material-icons-round {
+            color: #60a5fa;
+            font-size: 20px;
+        }
+
+        .wd-modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .wd-modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* Scan bar inside modal */
+        .wd-scan-inline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(96, 165, 250, .06);
+            border: 1px solid rgba(96, 165, 250, .2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 20px;
+        }
+
+        .wd-scan-inline .material-icons-round {
+            color: #60a5fa;
+            font-size: 18px;
+        }
+
+        .wd-scan-inline input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: .85rem;
+        }
+
+        .wd-scan-inline input::placeholder {
+            color: rgba(96, 165, 250, .5);
+        }
+
+        /* Destination type tabs */
+        .dest-type-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .dest-type-btn {
+            padding: 7px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: .8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .dest-type-btn:hover {
+            border-color: rgba(255, 255, 255, .25);
+            color: var(--text-primary);
+        }
+
+        .dest-type-btn.active {
+            border-color: #60a5fa;
+            color: #60a5fa;
+            background: rgba(96, 165, 250, .07);
+            font-weight: 600;
+        }
+
+        /* Form */
+        .wd-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .wd-form-full {
+            margin-bottom: 14px;
+        }
+
+        .wd-form-group label {
+            display: block;
+            font-size: .72rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .wd-form-group input,
+        .wd-form-group select,
+        .wd-form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 9px;
+            background: var(--bg-primary);
+            border: 1px solid rgba(255, 255, 255, .09);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: .84rem;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color .15s;
+        }
+
+        .wd-form-group input:focus,
+        .wd-form-group select:focus,
+        .wd-form-group textarea:focus {
+            border-color: rgba(96, 165, 250, .4);
+        }
+
+        .wd-form-group select option {
+            background: #1e1e1e;
+        }
+
+        .wd-form-group textarea {
+            resize: vertical;
+            min-height: 72px;
+        }
+
+        /* Modal footer */
+        .wd-modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 22px;
+            border-top: 1px solid rgba(255, 255, 255, .06);
+            padding-top: 18px;
+        }
+
+        .wd-btn-cancel {
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .1);
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: .84rem;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .wd-btn-cancel:hover {
+            background: rgba(255, 255, 255, .1);
+        }
+
+        .wd-btn-confirm {
+            padding: 10px 28px;
+            border-radius: 10px;
+            background: #60a5fa;
+            border: none;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: .84rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s, transform .1s;
+        }
+
+        .wd-btn-confirm:hover {
+            background: #4d96f0;
+            transform: translateY(-1px);
+        }
+
+        /* Toast */
+        .wd-toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #1a1f2e;
+            border: 1px solid rgba(96, 165, 250, .3);
+            color: #60a5fa;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: .82rem;
+            font-weight: 600;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .4);
+            z-index: 2000;
+            transition: transform .3s ease, opacity .3s ease;
+            opacity: 0;
+        }
+
+        .wd-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- TOP NAV -->
+    <nav class="top-nav" id="topNav">
+        <div class="nav-left">
+            <button class="nav-icon-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                <span class="material-icons-round">menu</span>
+            </button>
+            <div class="brand">
+                <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img"
+                    aria-label="MN+LA">
+                    <rect x="4" y="4" width="432" height="142" rx="6" ry="6" fill="none" stroke="white"
+                        stroke-width="8" />
+                    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white"
+                        font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700"
+                        letter-spacing="-2">MN+LA</text>
+                </svg>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button class="nav-icon-btn" id="notifBtn" aria-label="Notifications">
+                <span class="material-icons-round">notifications</span>
+                <span class="nav-badge" style="display:none;">0</span>
+            </button>
+            <button class="logout-btn" id="logoutBtn" aria-label="Sign out" onclick="window.location.href='login.html'">
+                <span class="material-icons-round">logout</span>
+            </button>
+            <div class="profile-wrapper" id="profileWrapper">
+                <button class="profile-btn" id="profileBtn" aria-label="User menu">
+                    <span class="profile-avatar" id="profileAvatar">DU</span>
+                    <span class="material-icons-round profile-chevron">expand_more</span>
+                </button>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="dropdown-header">
+                        <strong>Warehouse Staff</strong>
+                        <small>Warehouse</small>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="index.html" class="dropdown-item"><span class="material-icons-round">home</span> Master
+                        Dashboard</a>
+                    <a href="inventory.html" class="dropdown-item"><span class="material-icons-round">warehouse</span>
+                        Inventory &amp; Warehouse</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="login.html" class="dropdown-item dropdown-item--danger"><span
+                            class="material-icons-round">logout</span> Sign Out</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="wd-page">
+        <!-- BACK -->
+        <div style="margin-bottom:20px;">
+            <a href="inventory.html"
+                style="display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-size:.8rem;text-decoration:none;transition:color .15s;"
+                onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                <span class="material-icons-round" style="font-size:16px;">arrow_back</span> Inventory &amp; Warehouse
+            </a>
+        </div>
+
+        <div class="wd-header">
+            <div class="wd-header-left">
+                <div class="wd-header-icon"><span class="material-icons-round">local_shipping</span></div>
+                <div>
+                    <div class="wd-header-title">Warehouse Dispatch</div>
+                    <div class="wd-header-sub">Log items leaving the warehouse to stores, riders, or couriers</div>
+                </div>
+            </div>
+            <button class="wd-btn-primary" id="btnCreateDispatch">
+                <span class="material-icons-round">add</span> Create Dispatch
+            </button>
+        </div>
+
+        <!-- BARCODE SCANNER -->
+        <div class="wd-scanner-bar">
+            <span class="material-icons-round">qr_code_scanner</span>
+            <input type="text" id="barcodeInput" placeholder="Scan barcode or enter SKU to quickly add product…"
+                autocomplete="off" />
+            <span class="wd-scan-kbd">Press Enter</span>
+        </div>
+
+        <!-- STAT CARDS -->
+        <div class="stat-grid" style="margin-bottom:24px;">
+            <div class="stat-card" style="--sc:#94a3b8;">
+                <div class="stat-card__icon" style="background:rgba(148,163,184,.1);color:#94a3b8;"><span
+                        class="material-icons-round">inventory</span></div>
+                <div class="stat-card__value" id="statPacking">0</div>
+                <div class="stat-card__label">For Packing</div>
+            </div>
+            <div class="stat-card" style="--sc:#f5a623;">
+                <div class="stat-card__icon" style="background:rgba(245,166,35,.1);color:#f5a623;"><span
+                        class="material-icons-round">fact_check</span></div>
+                <div class="stat-card__value" id="statReady">0</div>
+                <div class="stat-card__label">Ready to Dispatch</div>
+            </div>
+            <div class="stat-card" style="--sc:#60a5fa;">
+                <div class="stat-card__icon" style="background:rgba(96,165,250,.1);color:#60a5fa;"><span
+                        class="material-icons-round">local_shipping</span></div>
+                <div class="stat-card__value" id="statDispatched">0</div>
+                <div class="stat-card__label">Dispatched Today</div>
+            </div>
+            <div class="stat-card" style="--sc:#a78bfa;">
+                <div class="stat-card__icon" style="background:rgba(167,139,250,.1);color:#a78bfa;"><span
+                        class="material-icons-round">directions_car</span></div>
+                <div class="stat-card__value" id="statTransit">0</div>
+                <div class="stat-card__label">In Transit</div>
+            </div>
+        </div>
+
+        <!-- FILTER + TABLE -->
+        <div class="wd-filter-row">
+            <button class="wd-filter-btn active" data-filter="today">Today</button>
+            <button class="wd-filter-btn" data-filter="transit">In Transit</button>
+            <button class="wd-filter-btn" data-filter="completed">Completed</button>
+            <button class="wd-filter-btn" data-filter="all">All</button>
+        </div>
+
+        <div class="wd-table-card">
+            <div class="wd-table-head">
+                <span class="wd-table-title">Dispatch Queue</span>
+                <span class="wd-table-count" id="tableCount">— entries</span>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="wd-table" id="dispatchTable">
+                    <thead>
+                        <tr>
+                            <th>Dispatch ID</th>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Qty</th>
+                            <th>Via</th>
+                            <th>Destination</th>
+                            <th>Packed By</th>
+                            <th>Status</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dispatchTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- CREATE DISPATCH MODAL -->
+    <div class="wd-modal-overlay" id="dispatchModal">
+        <div class="wd-modal">
+            <div class="wd-modal-header">
+                <div class="wd-modal-title">
+                    <span class="material-icons-round">local_shipping</span> Create Dispatch
+                </div>
+                <button class="wd-modal-close" id="btnCloseModal">✕</button>
+            </div>
+
+            <!-- Scan inside modal -->
+            <div class="wd-scan-inline">
+                <span class="material-icons-round">qr_code_scanner</span>
+                <input type="text" id="modalScan" placeholder="Scan barcode or enter SKU…" autocomplete="off" />
+            </div>
+
+            <form id="dispatchForm">
+                <div class="wd-form-grid">
+                    <div class="wd-form-group">
+                        <label>SKU / Barcode</label>
+                        <input type="text" id="dspSku" placeholder="e.g. DJP-OBS-30" required />
+                    </div>
+                    <div class="wd-form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="dspQty" min="1" value="1" required />
+                    </div>
+                </div>
+
+                <div class="wd-form-full wd-form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="dspProductName" placeholder="Auto-fills from SKU…" />
+                </div>
+
+                <div class="wd-form-full">
+                    <label
+                        style="display:block;font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Dispatch
+                        Via</label>
+                    <div class="dest-type-selector" id="destTypeSelector">
+                        <button type="button" class="dest-type-btn active" data-dest-type="Store">Store</button>
+                        <button type="button" class="dest-type-btn" data-dest-type="Rider">Rider</button>
+                        <button type="button" class="dest-type-btn" data-dest-type="J&T">J&amp;T Express</button>
+                        <button type="button" class="dest-type-btn" data-dest-type="DHL">DHL Express</button>
+                    </div>
+                    <input type="hidden" id="dspDestType" value="Store" />
+                </div>
+
+                <div class="wd-form-full wd-form-group" id="destNameGroup">
+                    <label>Destination</label>
+                    <select id="dspDestination" required>
+                        <option value="">Select store…</option>
+                        <option>MN+LA™ ONE AYALA</option>
+                        <option>MN+LA™ BGC</option>
+                        <option>MN+LA™ SM MEGA MALL</option>
+                        <option>MN+LA™ ARTISAN CAFE GATEWAY II</option>
+                        <option>MN+LA™ CIANNAT COMPLEX</option>
+                        <option>MN+LA™ GREENHILLS</option>
+                        <option>MN+LA™ SM NORTH EDSA</option>
+                        <option>MN+LA™ SM MANILA</option>
+                    </select>
+                </div>
+
+                <div class="wd-form-grid">
+                    <div class="wd-form-group">
+                        <label>Dispatch Reference</label>
+                        <input type="text" id="dspReference" placeholder="e.g. DSP-2026-031" />
+                    </div>
+                    <div class="wd-form-group">
+                        <label>Packed By</label>
+                        <input type="text" id="dspPackedBy" placeholder="Staff name or ID" required />
+                    </div>
+                </div>
+
+                <div class="wd-form-full wd-form-group">
+                    <label>Notes</label>
+                    <textarea id="dspNotes" placeholder="Optional remarks…"></textarea>
+                </div>
+
+                <div class="wd-modal-footer">
+                    <button type="button" class="wd-btn-cancel" id="btnCancelModal">Cancel</button>
+                    <button type="submit" class="wd-btn-confirm">
+                        <span class="material-icons-round"
+                            style="font-size:16px;vertical-align:middle;margin-right:4px;">check</span>
+                        Confirm Dispatch
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="wd-toast" id="wdToast"></div>
+
+    <script src="supabase-client.js"></script>
+    <script src="warehouse-dispatch.js"></script>
+</body>
+
+</html>
