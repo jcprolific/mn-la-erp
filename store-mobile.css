@@ -205,21 +205,58 @@
 
   /* ---------- Branch Stocks: scrollable table + wrap toolbar ---------- */
   .sd-toolbar {
-    flex-direction: column;
-    align-items: stretch;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 10px;
+    margin-bottom: 16px;
   }
-  .sd-toolbar .sd-search { min-width: 0; width: 100%; }
-  .sd-toolbar .sd-filter-btn { flex: 1; min-height: 44px; }
+  .sd-toolbar .sd-search {
+    flex: 0 0 100%;
+    min-width: 0;
+    width: 100%;
+  }
+  .sd-toolbar .sd-filter-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .sd-toolbar #refreshStocksBtn {
+    flex: 0 0 auto;
+    margin-left: 0;
+  }
   .sd-table-wrap {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     margin: 0 -16px;
+    padding-right: 16px;
+    margin-bottom: 16px;
     border-radius: 0;
     border-left: none;
     border-right: none;
+    scroll-behavior: smooth;
   }
-  .sd-table { min-width: 520px; }
+  .sd-table-wrap .sd-table {
+    min-width: 680px;
+    width: max-content;
+    table-layout: auto;
+  }
+  .store-main .sd-table-wrap .sd-table {
+    width: max-content;
+  }
+  .sd-table { min-width: 680px; }
+  .sd-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: rgba(255,255,255,.03);
+    box-shadow: 0 1px 0 rgba(255,255,255,.06);
+  }
   .sd-table th, .sd-table td {
     padding: 12px 14px;
     font-size: 0.85rem;
@@ -228,7 +265,13 @@
   .sd-table th:nth-child(2), .sd-table td:nth-child(2) { min-width: 160px; white-space: normal; }
   .sd-table th:nth-child(5), .sd-table td:nth-child(5) { min-width: 70px; }
   .sd-table th:nth-child(6), .sd-table td:nth-child(6) { min-width: 88px; }
-  .sd-table .sd-btn-icon { min-width: 40px; min-height: 40px; }
+  .sd-table .sd-btn-icon { min-height: 40px; min-width: 40px; }
+  .sd-table tbody tr.sd-row-clickable {
+    -webkit-tap-highlight-color: rgba(122,159,196,.15);
+  }
+  .sd-table tbody tr.sd-row-clickable:active {
+    background: rgba(122,159,196,.12);
+  }
   #refreshStocksBtn { margin-left: 0; min-height: 44px; }
 
   /* ---------- Sales Today / Inventory Out: same main full-width ---------- */

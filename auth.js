@@ -25,12 +25,13 @@
        Role → destination page map
        All roles land on index.html for now; easy to expand later.
     ---------------------------------------------------------- */
-    /* Accepted roles: owner, admin, store_associate, warehouse_staff, accountant */
+    /* Accepted roles: owner, admin, store_associate, warehouse_staff, warehouse, accountant */
     const ROLE_ROUTES = {
         owner: 'index.html',
         admin: 'index.html',
         store_associate: 'store.html',
         warehouse_staff: 'warehouse.html',
+        warehouse: 'warehouse.html',
         accountant: 'index.html',
     };
     const DEFAULT_ROUTE = 'index.html';

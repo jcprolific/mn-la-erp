@@ -43,6 +43,14 @@
       p: PALETTE.sage,
     },
     {
+      id: 'module-warehouse',
+      label: 'Warehouse',
+      icon: 'warehouse',
+      url: 'warehouse.html',
+      allowedRoles: ['owner', 'admin'],
+      p: { hex: '#7a9fc4', rgba: (a) => `rgba(122,159,196,${a})` },
+    },
+    {
       id: 'module-inventory',
       label: 'Inventory & Warehouse',
       icon: 'inventory_2',
@@ -300,6 +308,25 @@
   });
 
 
+  /* ---------- WAREHOUSE CARD SUMMARY (owner/admin) ---------- */
+  async function updateWarehouseCardSummary() {
+    const userRole = window.Auth?.profile?.role;
+    if (userRole !== 'owner' && userRole !== 'admin') return;
+    const card = document.getElementById('module-warehouse');
+    if (!card || !window.db) return;
+    try {
+      const { data, error } = await window.db.rpc('get_warehouse_dashboard_metrics');
+      if (error || !data) return;
+      const sub = card.querySelector('.module-card__sub');
+      if (sub) {
+        const units = (data.total_units ?? 0).toLocaleString();
+        const skus = (data.total_skus ?? 0).toLocaleString();
+        const today = data.today_movements ?? 0;
+        sub.textContent = `${units} units · ${skus} SKUs · ${today} movements today`;
+      }
+    } catch (_) {}
+  }
+
   /* ---------- INIT ---------- */
   async function initDashboard() {
     if (window.Auth && window.Auth.guard) {
@@ -310,6 +337,7 @@
     renderModules();
     renderPendingActions();
     updateNavBadge();
+    updateWarehouseCardSummary();
   }
 
   setTimeout(initDashboard, 50);

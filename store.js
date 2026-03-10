@@ -94,22 +94,6 @@
     }
 
     /* ────────────────────────────────────────────────────────
-       MOCK DAILY SALES  (today's transactions)
-    ──────────────────────────────────────────────────────── */
-    const MOCK_SALES = [
-        { time: '09:14', product: '"HITTER" V3 BOX LITE TEE IN OAT', size: 'M', qty: 1, method: 'Cash', amount: 1590, staff: 'Raffy M.' },
-        { time: '10:02', product: 'DOJO PANTS IN OBSIDIAN', size: 'L', qty: 1, method: 'Card', amount: 2490, staff: 'Jan D.' },
-        { time: '10:45', product: '"MONARCH" S/S DRAPE IN FERN', size: 'S', qty: 2, method: 'Cash', amount: 3780, staff: 'Raffy M.' },
-        { time: '11:30', product: 'APEX RING IN LILAC', size: 'OS', qty: 1, method: 'GCash', amount: 790, staff: 'Jan D.' },
-        { time: '12:55', product: 'ARTISAN JACKET IN OLIVE', size: 'M', qty: 1, method: 'COD', amount: 3990, staff: 'Raffy M.' },
-        { time: '13:20', product: '"RIDE OR DIE" TEE IN WOOD', size: 'XL', qty: 1, method: 'Cash', amount: 1590, staff: 'Jan D.' },
-        { time: '14:10', product: 'PHAT PANTS IN HEATHER GREY', size: '30', qty: 1, method: 'Cash', amount: 2690, staff: 'Raffy M.' },
-        { time: '15:40', product: '"HEAVEN ON EARTH" TEE IN CAVIAR', size: 'M', qty: 1, method: 'Card', amount: 1590, staff: 'Raffy M.' },
-        { time: '16:08', product: 'DECK JACKET IN OLIVE', size: 'L', qty: 1, method: 'GCash', amount: 3690, staff: 'Jan D.' },
-        { time: '17:55', product: 'CHOP CHOP TEE IN BLACK SAND', size: 'S', qty: 2, method: 'Cash', amount: 2980, staff: 'Raffy M.' },
-    ];
-
-    /* ────────────────────────────────────────────────────────
        STATE
     ──────────────────────────────────────────────────────── */
     let currentStoreId = 'one-ayala';
@@ -178,6 +162,11 @@
             if (pendingEl) pendingEl.textContent = String(m.pending_inventory_out ?? 0);
         } catch (e) {
             console.warn('[Store] get_store_dashboard_metrics failed:', e);
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            set('sdStatSales', peso(0));
+            set('sdStatCash', peso(0));
+            const txnEl = document.getElementById('sdStatTxn');
+            if (txnEl) txnEl.textContent = '0';
         }
     }
 
@@ -187,16 +176,13 @@
             return;
         }
         const inv = storeInventory;
-        const sales = MOCK_SALES;
-
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         set('sdStatUnits', totalUnits(inv).toLocaleString());
-        set('sdStatSales', peso(sales.reduce((s, t) => s + t.amount, 0)));
-        set('sdStatTxn', (sales.length || 0).toLocaleString());
+        set('sdStatSales', peso(0));
+        set('sdStatTxn', '0');
         set('sdStatLowStock', String(lowStockCount(inv)));
         set('sdStatPendingOut', '0');
-        const cashTotal = sales.filter(t => t.method === 'Cash').reduce((s, t) => s + t.amount, 0);
-        set('sdStatCash', peso(cashTotal));
+        set('sdStatCash', peso(0));
     }
 
     /* ────────────────────────────────────────────────────────
@@ -339,17 +325,24 @@
        DAILY SALES REPORT
     ──────────────────────────────────────────────────────── */
     function renderSalesReport() {
-        const sales = MOCK_SALES;
-        const total = sales.reduce((s, t) => s + t.amount, 0);
-        const cash = sales.filter(t => t.method === 'Cash').reduce((s, t) => s + t.amount, 0);
-        const cod = total - cash;
+        const sales = [];
+        const total = 0;
+        const cash = 0;
+        const cod = 0;
 
-        document.getElementById('rptTotal').textContent = peso(total);
-        document.getElementById('rptTxn').textContent = sales.length;
-        document.getElementById('rptCash').textContent = peso(cash);
-        document.getElementById('rptCod').textContent = peso(cod);
+        const rptTotal = document.getElementById('rptTotal');
+        const rptTxn = document.getElementById('rptTxn');
+        const rptCash = document.getElementById('rptCash');
+        const rptCod = document.getElementById('rptCod');
+        if (rptTotal) rptTotal.textContent = peso(total);
+        if (rptTxn) rptTxn.textContent = String(sales.length);
+        if (rptCash) rptCash.textContent = peso(cash);
+        if (rptCod) rptCod.textContent = peso(cod);
 
-        document.getElementById('sdReportBody').innerHTML = sales.map(t => `
+        const bodyEl = document.getElementById('sdReportBody');
+        if (bodyEl) bodyEl.innerHTML = sales.length === 0
+            ? '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No sales data.</td></tr>'
+            : sales.map(t => `
       <tr>
         <td>${t.time}</td>
         <td style="color:var(--text-primary);font-weight:500;">${t.product.length > 30 ? t.product.slice(0, 28) + '…' : t.product}</td>

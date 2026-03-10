@@ -155,9 +155,6 @@
             <button type="button" id="btnAddManuallyAlways" class="sd-link-btn">Barcode not in catalog? Add product manually</button>
           </p>
           <div id="barcodeError" class="sd-barcode-error" style="display:none; margin-top:6px; color:var(--danger, #dc3545); font-size:0.9rem;"></div>
-          <div id="barcodeDebugBlock" style="margin-top:10px; padding:10px; background:rgba(0,0,0,.2); border-radius:8px; font-size:0.8rem; font-family:monospace;">
-            <strong>Debug:</strong> <span id="barcodeDebugScanned">—</span> | <span id="barcodeDebugMatch">—</span> | <span id="barcodeDebugName">—</span>
-          </div>
         </div>
         <div class="sd-form-group sd-search-row">
           <label>Search by name, SKU, or barcode</label>
@@ -274,14 +271,6 @@
   var assignedLocationId = null;
   var lastNotFoundBarcode = '';
 
-  // #region agent log
-  function _debugLog(location, message, data, hypothesisId) {
-    var payload = { sessionId: '3f3b14', location: location, message: message, data: data || {}, timestamp: Date.now() };
-    if (hypothesisId) payload.hypothesisId = hypothesisId;
-    fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3f3b14' }, body: JSON.stringify(payload) }).catch(function() {});
-  }
-  // #endregion
-
   async function fetchLocationName(locId) {
     if (!locId || !window.db) return null;
     var { data } = await window.db.from('locations').select('name').eq('id', locId).maybeSingle();
@@ -360,10 +349,6 @@
   }
 
   async function addToList(product) {
-    // #region agent log
-    console.log('addToList called with:', product);
-    _debugLog('store-inventory-in.html:addToList', 'addToList called', { productId: product && product.id, name: product && product.name }, 'H4');
-    // #endregion
     var existing = inList.find(function(p) { return p.id === product.id; });
     var branchStock = await getBranchStock(product.id);
     if (existing) {
@@ -382,9 +367,6 @@
       });
     }
     renderList();
-    // #region agent log
-    _debugLog('store-inventory-in.html:addToList:afterRender', 'After addToList+renderList', { inListLength: inList.length }, 'H5');
-    // #endregion
   }
 
   function removeFromList(index) {
@@ -463,27 +445,9 @@
     return (products && products[0]) ? products[0] : null;
   }
 
-  function updateBarcodeDebugBlock(scanned, matchStatus, productName) {
-    var elScanned = document.getElementById('barcodeDebugScanned');
-    var elMatch = document.getElementById('barcodeDebugMatch');
-    var elName = document.getElementById('barcodeDebugName');
-    if (elScanned) elScanned.textContent = scanned != null ? String(scanned) : '—';
-    if (elMatch) elMatch.textContent = matchStatus != null ? String(matchStatus) : '—';
-    if (elName) elName.textContent = productName != null ? String(productName) : '—';
-  }
-
   async function handleBarcodeScan(barcode) {
-    // #region agent log
-    console.log('handleBarcodeScan called with:', barcode);
-    _debugLog('store-inventory-in.html:handleBarcodeScan', 'handleBarcodeScan called', { barcode: barcode, hasDb: !!window.db }, 'H3');
-    // #endregion
-    if (!barcode || !window.db) {
-      console.log('handleBarcodeScan: skip (empty barcode or no db)');
-      updateBarcodeDebugBlock(barcode || '', 'skip (empty or no db)', '');
-      return;
-    }
+    if (!barcode || !window.db) return;
     var trimmed = (barcode || '').trim();
-    console.log('Running barcode lookup...');
     var product = null;
     var products = null;
     var lookupError = null;
@@ -491,20 +455,12 @@
       var res = await window.db.rpc('get_product_by_barcode', { p_barcode: trimmed });
       products = (res && res.data) ? (Array.isArray(res.data) ? res.data : [res.data]) : [];
       lookupError = res && res.error;
-      // #region agent log
-      console.log('Barcode lookup response:', { products: products, error: lookupError });
-      _debugLog('store-inventory-in.html:handleBarcodeScan:afterQuery', 'Lookup result', { productsLength: (products && products.length) || 0, error: lookupError ? String(lookupError.message || lookupError) : null }, 'H2');
-      // #endregion
       if (lookupError) {
-        console.error('Barcode lookup error:', lookupError);
         if (window.Auth.toast) window.Auth.toast('Error looking up barcode', 'error');
-        updateBarcodeDebugBlock(trimmed, 'error', lookupError.message || '');
         return;
       }
       if (!products || products.length === 0) {
-        console.log('Barcode not found');
         lastNotFoundBarcode = trimmed;
-        updateBarcodeDebugBlock(trimmed, 'not found', '');
         var errEl = document.getElementById('barcodeError');
         if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
         var notFoundWrap = document.getElementById('barcodeNotFoundWrap');
@@ -512,21 +468,11 @@
         if (window.Auth.toast) window.Auth.toast('Barcode not found in product master database.', 'error');
         return;
       }
-      if (products.length > 1) {
-        console.warn('Duplicate barcode found in products table, using first match');
-      }
       product = products[0];
     } catch (err) {
-      console.log('Barcode lookup exception:', err);
-      updateBarcodeDebugBlock(trimmed, 'exception: ' + (err && err.message), '');
       return;
     }
     if (product) {
-      // #region agent log
-      console.log('Matched product:', product);
-      _debugLog('store-inventory-in.html:handleBarcodeScan:matched', 'Matched product', { id: product.id, name: product.name, sku: product.sku }, 'H4');
-      // #endregion
-      updateBarcodeDebugBlock(trimmed, 'match found', product.name || product.sku || '');
       var errEl = document.getElementById('barcodeError');
       if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
       var notFoundWrap = document.getElementById('barcodeNotFoundWrap');
@@ -588,10 +534,6 @@
     });
     /* No auto-scan on input: user can take as long as they want; trigger only via Enter or Search button. */
     barcodeInput.addEventListener('keydown', async function(e) {
-      // #region agent log
-      console.log('Barcode keydown:', e.key);
-      _debugLog('store-inventory-in.html:keydown', 'Barcode keydown', { key: e.key, inputValue: (e.target && e.target.value) || '' }, 'H1');
-      // #endregion
       if (e.key === 'Enter') {
         clearTimeout(scanTimer);
         scanTimer = null;
@@ -602,26 +544,18 @@
         function readAndProcess() {
           var barcode = (input.value || '').trim().replace(/\r?\n/g, '');
           if (!barcode && barcodeNow) barcode = barcodeNow;
-          // #region agent log
-          console.log('Scanned barcode:', barcode);
-          _debugLog('store-inventory-in.html:readAndProcess', 'Scanned barcode', { barcode: barcode, isEmpty: !barcode }, 'H1');
-          // #endregion
           if (!barcode) {
             setTimeout(function() {
               barcode = (input.value || '').trim().replace(/\r?\n/g, '');
               if (!barcode) barcode = barcodeNow;
               if (!barcode) {
-                console.log('Empty barcode - click the field and scan again');
                 input.focus();
                 return;
               }
-              console.log('Scanned barcode (2nd read):', JSON.stringify(barcode));
-              _debugLog('store-inventory-in.html:readAndProcess-delayed', 'Scanned barcode (2nd read)', { barcode: barcode }, 'H1');
               runHandleAndClear(barcode);
             }, 60);
             return;
           }
-          console.log('Running barcode lookup...');
           runHandleAndClear(barcode);
         }
         async function runHandleAndClear(barcode) {
@@ -1045,66 +979,69 @@
     setTimeout(function() { if (searchResults) searchResults.style.display = 'none'; }, 200);
   });
 
+  var isSaving = false;
   var btnSubmit = document.getElementById('btnSubmitReceive');
-  if (btnSubmit) btnSubmit.addEventListener('click', async function() {
+  if (btnSubmit) btnSubmit.addEventListener('click', async function(e) {
+    if (e) e.preventDefault();
+    if (isSaving) return;
     if (inList.length === 0 || !window.db) return;
     var locId = assignedLocationId;
-    if (!locId) {
-      locId = window.Session && window.Session.locationId();
-    }
+    if (!locId && window.Session && window.Session.locationId) locId = window.Session.locationId ? window.Session.locationId() : null;
     var isDemo = window.Auth && (window.Auth.isDemoMode === true || localStorage.getItem('mnla_demo') === 'true');
     if (!locId) {
       if (window.Auth.toast) window.Auth.toast(isDemo ? 'Demo: assign a branch in Staff to test receiving.' : 'No assigned branch.', 'error');
       return;
     }
+    var requestId = 'st-' + Date.now() + '-' + Math.random().toString(36).slice(2);
     var btn = this;
     var originalText = btn.textContent;
     var errEl = document.getElementById('receiveError');
     var successEl = document.getElementById('successMsg');
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    isSaving = true;
     btn.disabled = true;
     btn.textContent = 'Receiving…';
     var errCount = 0;
     var lastError = '';
-    for (var i = 0; i < inList.length; i++) {
-      var row = inList[i];
-      var qty = Math.max(1, parseInt(row.quantity, 10) || 1);
-      try {
-        console.log('Receive stock:', row.name || row.sku, 'qty', qty, 'location', locId);
-        var { data, error } = await window.db.rpc('receive_stock', {
-          p_product_id: row.id,
-          p_location_id: locId,
-          p_quantity: qty,
-          p_notes: 'store_inventory_in'
-        });
-        if (error) {
-          console.error('receive_stock RPC error:', error);
-          throw error;
+    try {
+      for (var i = 0; i < inList.length; i++) {
+        var row = inList[i];
+        var qty = Math.max(1, parseInt(row.quantity, 10) || 1);
+        try {
+          var { error } = await window.db.rpc('store_receive_inventory_v2', {
+            p_product_id: row.id,
+            p_store_location_id: locId,
+            p_quantity: qty,
+            p_notes: 'store_inventory_in',
+            p_request_id: requestId
+          });
+          if (error) throw error;
+        } catch (err) {
+          errCount++;
+          lastError = err.message || err.code || 'Error receiving stock';
+          if (window.Auth.toast) window.Auth.toast(lastError, 'error');
         }
-        console.log('receive_stock ok for', row.id);
-      } catch (err) {
-        errCount++;
-        lastError = err.message || err.code || 'Error receiving stock';
-        if (window.Auth.toast) window.Auth.toast(lastError, 'error');
       }
-    }
-    btn.disabled = false;
-    btn.textContent = originalText;
-    if (errCount > 0 && errEl) {
-      errEl.textContent = 'Could not save to inventory: ' + lastError + (errCount > 1 ? ' (' + errCount + ' items failed)' : '');
-      errEl.style.display = 'block';
-    }
-    if (errCount === 0) {
-      if (successEl) {
-        successEl.textContent = 'Stock received successfully. Check Branch Stocks to see updated inventory.';
-        successEl.style.display = 'block';
-        setTimeout(function() { successEl.style.display = 'none'; }, 5000);
+      if (errCount > 0 && errEl) {
+        errEl.textContent = 'Could not save to inventory: ' + lastError + (errCount > 1 ? ' (' + errCount + ' items failed)' : '');
+        errEl.style.display = 'block';
       }
-      if (window.Auth.toast) window.Auth.toast('Stock received successfully.', 'success');
-      inList = [];
-      renderList();
-      barcodeInput.value = '';
-      if (barcodeInput) barcodeInput.focus();
+      if (errCount === 0) {
+        if (successEl) {
+          successEl.textContent = 'Stock received successfully. Check Branch Stocks to see updated inventory.';
+          successEl.style.display = 'block';
+          setTimeout(function() { successEl.style.display = 'none'; }, 5000);
+        }
+        if (window.Auth.toast) window.Auth.toast('Stock received successfully.', 'success');
+        inList = [];
+        renderList();
+        barcodeInput.value = '';
+        if (barcodeInput) barcodeInput.focus();
+      }
+    } finally {
+      isSaving = false;
+      btn.disabled = false;
+      btn.textContent = originalText;
     }
   });
 

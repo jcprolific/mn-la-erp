@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Branch Stocks — Store Dashboard | MN+LA ERP</title>
+  <title>Warehouse Stocks | MN+LA ERP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
@@ -72,7 +72,7 @@
     <div class="nav-left">
       <button type="button" class="store-hamburger" id="storeMenuBtn" aria-label="Open menu"><span class="material-icons-round">menu</span></button>
       <div class="brand">
-        <a href="store.html" style="display:block;"><svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA"><rect x="4" y="4" width="432" height="142" rx="6" fill="none" stroke="white" stroke-width="8" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Inter,sans-serif" font-size="82" font-weight="700">MN+LA</text></svg></a>
+        <a href="index.html" style="display:block;"><svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA"><rect x="4" y="4" width="432" height="142" rx="6" fill="none" stroke="white" stroke-width="8" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Inter,sans-serif" font-size="82" font-weight="700">MN+LA</text></svg></a>
       </div>
     </div>
     <div class="nav-right">
@@ -82,7 +82,7 @@
         <div class="profile-dropdown">
           <div class="dropdown-header"><strong id="dropdownName">—</strong><small id="dropdownRole">—</small></div>
           <div class="dropdown-divider"></div>
-          <a href="store.html" class="dropdown-item"><span class="material-icons-round">dashboard</span> Dashboard</a>
+          <a href="warehouse.html" class="dropdown-item"><span class="material-icons-round">dashboard</span> Warehouse Dashboard</a>
           <a href="#" class="dropdown-item dropdown-item--danger" id="storeLogout"><span class="material-icons-round">logout</span> Sign Out</a>
         </div>
       </div>
@@ -92,18 +92,17 @@
   <div class="store-layout">
     <div class="store-drawer-overlay" id="storeDrawerOverlay" aria-hidden="true"></div>
     <aside class="store-sidebar">
-      <div class="store-sidebar__header"><span class="material-icons-round">storefront</span> Store</div>
+      <div class="store-sidebar__header"><span class="material-icons-round">warehouse</span> Warehouse</div>
       <nav class="store-sidebar__nav">
-        <a href="store.html" class="store-sidebar__link"><span class="material-icons-round">dashboard</span> Dashboard</a>
-        <a href="store-inventory-in.html" class="store-sidebar__link"><span class="material-icons-round">input</span> Inventory In</a>
-        <a href="store-inventory-out.html" class="store-sidebar__link"><span class="material-icons-round">output</span> Inventory Out</a>
-        <a href="store-branch-stocks.html" class="store-sidebar__link active"><span class="material-icons-round">inventory_2</span> Branch Stocks</a>
-        <a href="store-sales-today.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
+        <a href="warehouse.html" class="store-sidebar__link"><span class="material-icons-round">dashboard</span> Dashboard</a>
+        <a href="warehouse-inventory-in.html" class="store-sidebar__link"><span class="material-icons-round">input</span> Inventory In</a>
+        <a href="warehouse-stocks.html" class="store-sidebar__link active"><span class="material-icons-round">inventory_2</span> Warehouse Stocks</a>
+        <a href="warehouse.html#sectionItemAvailability" class="store-sidebar__link"><span class="material-icons-round">storefront</span> Item Availability</a>
       </nav>
     </aside>
     <main class="store-main">
-      <h1 class="sd-page-title">Branch Stocks</h1>
-      <p class="sd-page-sub">Inventory at your assigned branch. Tap a product to adjust quantity, or use Edit/Delete on the right.</p>
+      <h1 class="sd-page-title">Warehouse Stocks</h1>
+      <p class="sd-page-sub">Inventory at the warehouse. Tap a product to adjust quantity, or use Edit/Delete on the right.</p>
 
       <div class="sd-toolbar">
         <input type="text" class="sd-search" id="searchInput" placeholder="Search by barcode or product name" />
@@ -179,13 +178,9 @@
   async function guard() {
     await window.Auth.guard();
     var profile = window.Auth.profile;
-    var allowed = profile && (profile.role === 'store_associate' || profile.role === 'owner' || profile.role === 'admin');
+    var allowed = profile && (profile.role === 'warehouse_staff' || profile.role === 'warehouse' || profile.role === 'owner' || profile.role === 'admin');
     if (!allowed) {
       window.location.replace('index.html');
-      return;
-    }
-    if (profile.role === 'store_associate' && !profile.location_id) {
-      if (window.Auth.toast) window.Auth.toast('No assigned branch.', 'error');
       return;
     }
     document.getElementById('dropdownName').textContent = profile.full_name || 'User';
@@ -210,7 +205,7 @@
     var tbody = document.getElementById('stocksBody');
     if (list.length === 0) {
       var emptyMsg = allRows.length === 0
-        ? 'No products in this branch yet. Add products from Inventory In, then click Refresh.'
+        ? 'No products in warehouse yet'
         : 'No items match.';
       tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">' + emptyMsg + '</td></tr>';
       return;
@@ -219,10 +214,11 @@
       var qtyClass = r.quantity === 0 ? 'sd-qty-zero' : (r.quantity <= LOW ? 'sd-qty-low' : '');
       var pid = (r.product_id || '').replace(/"/g, '&quot;');
       var actions = pid
-        ? '<div class="sd-row-actions"><button type="button" class="sd-btn-icon sd-btn-edit" data-action="edit" data-product-id="' + pid + '" aria-label="Adjust quantity"><span class="material-icons-round">edit</span></button><button type="button" class="sd-btn-icon sd-btn-delete" data-action="delete" data-product-id="' + pid + '" aria-label="Remove from branch"><span class="material-icons-round">delete</span></button></div>'
+        ? '<div class="sd-row-actions"><button type="button" class="sd-btn-icon sd-btn-edit" data-action="edit" data-product-id="' + pid + '" aria-label="Adjust quantity"><span class="material-icons-round">edit</span></button><button type="button" class="sd-btn-icon sd-btn-delete" data-action="delete" data-product-id="' + pid + '" aria-label="Remove from warehouse"><span class="material-icons-round">delete</span></button></div>'
         : '—';
       return '<tr class="sd-row-clickable" data-product-id="' + pid + '" role="button" tabindex="0" aria-label="Tap to adjust quantity"><td>' + (r.barcode || '—') + '</td><td>' + (r.name || '—') + '</td><td>' + (r.size || '—') + '</td><td>' + (r.color || '—') + '</td><td class="' + qtyClass + '">' + r.quantity + '</td><td>' + actions + '</td></tr>';
     }).join('');
+    console.log('[Warehouse Stocks] rendered row count', list.length);
     tbody.querySelectorAll('.sd-btn-edit, .sd-btn-delete').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -281,19 +277,14 @@
     var row = modal && modal._adjustRow;
     var qtyInput = document.getElementById('adjustQtyInput');
     var reasonInput = document.getElementById('adjustReasonInput');
-    if (!row || !row.product_id || !window.db) return;
+    if (!row || !row.product_id || !window.db || !currentLocationId) return;
     var newQty = parseInt(qtyInput && qtyInput.value, 10);
     if (isNaN(newQty) || newQty < 0) {
       if (window.Auth.toast) window.Auth.toast('Enter a valid quantity (0 or more).', 'error');
       return;
     }
-    var reason = (reasonInput && reasonInput.value && reasonInput.value.trim()) || null;
     try {
-      var res = await window.db.rpc('set_inventory_count', {
-        p_product_id: row.product_id,
-        p_counted_quantity: newQty,
-        p_reason: reason
-      });
+      var res = await window.db.from('inventory').update({ quantity: newQty }).eq('product_id', row.product_id).eq('location_id', currentLocationId).select();
       if (res.error) throw res.error;
       row.quantity = newQty;
       filterRows();
@@ -306,16 +297,16 @@
   }
 
   async function confirmDeleteRow(row) {
-    var msg = 'Remove "' + (row.name || row.barcode || 'this product') + '" from branch stock? Quantity will be set to zero (row removed).';
+    var msg = 'Remove "' + (row.name || row.barcode || 'this product') + '" from warehouse stock? Quantity will be set to zero (row removed).';
     if (!window.confirm(msg)) return;
     if (!window.db || !currentLocationId) {
-      if (window.Auth.toast) window.Auth.toast('Cannot delete: missing location.', 'error');
+      if (window.Auth.toast) window.Auth.toast('Cannot delete: missing warehouse location.', 'error');
       return;
     }
     try {
       var res = await window.db.from('inventory').delete().eq('product_id', row.product_id).eq('location_id', currentLocationId).select();
       if (res.error) throw res.error;
-      if (window.Auth.toast) window.Auth.toast('Item removed from branch stock.', 'success');
+      if (window.Auth.toast) window.Auth.toast('Item removed from warehouse stock.', 'success');
       loadStocks();
     } catch (err) {
       if (window.Auth.toast) window.Auth.toast(err.message || 'Failed to remove item.', 'error');
@@ -326,83 +317,42 @@
     if (!window.db) return;
     var tbody = document.getElementById('stocksBody');
     tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">Loading…</td></tr>';
-    var locationId = null;
     try {
-      var pr = await window.db.rpc('get_my_profile');
-      var prof = (pr && pr.data) ? (Array.isArray(pr.data) ? pr.data[0] : pr.data) : null;
-      locationId = prof && prof.location_id ? prof.location_id : null;
-    } catch (_) {}
-    currentLocationId = locationId;
-    if (locationId) {
-      var direct = await window.db.from('inventory').select('quantity, product_id, products(barcode, name, size, color, sku)').eq('location_id', locationId);
-      if (!direct.error && direct.data && Array.isArray(direct.data)) {
-        allRows = direct.data.map(function(row) {
-          var p = row.products != null ? row.products : row.product;
-          if (Array.isArray(p)) p = p[0];
-          if (!p || typeof p !== 'object') p = {};
-          return {
-            product_id: row.product_id || null,
-            barcode: p.barcode != null ? p.barcode : '',
-            name: p.name != null ? p.name : '',
-            size: p.size != null ? p.size : '',
-            color: p.color != null ? p.color : '',
-            quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
-          };
-        });
-        filterRows();
+      var res = await window.db.rpc('get_warehouse_stocks');
+      if (res.error) {
+        allRows = [];
+        tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
         return;
       }
-      var invOnly = await window.db.from('inventory').select('product_id, quantity').eq('location_id', locationId);
-      if (!invOnly.error && invOnly.data && Array.isArray(invOnly.data) && invOnly.data.length > 0) {
-        var ids = invOnly.data.map(function(r) { return r.product_id; }).filter(Boolean);
-        var uniq = ids.filter(function(id, i) { return ids.indexOf(id) === i; });
-        var prods = await window.db.from('products').select('id, barcode, name, size, color').in('id', uniq);
-        var prodMap = {};
-        if (!prods.error && prods.data) (prods.data || []).forEach(function(p) { prodMap[p.id] = p; });
-        allRows = invOnly.data.map(function(row) {
-          var p = prodMap[row.product_id] || {};
-          return {
-            product_id: row.product_id || null,
-            barcode: p.barcode != null ? p.barcode : '',
-            name: p.name != null ? p.name : '',
-            size: p.size != null ? p.size : '',
-            color: p.color != null ? p.color : '',
-            quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
-          };
-        });
-        filterRows();
-        return;
+      var data = res.data;
+      if (data && typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (_) {}
       }
-    }
-    var res = await window.db.rpc('get_store_branch_stocks', locationId ? { p_location_id: locationId } : {});
-    var data = res.data, error = res.error;
-    if (error) {
+      if (data && typeof data === 'object' && data !== null && !Array.isArray(data)) {
+        if (Array.isArray(data.data)) data = data.data;
+        else if (typeof Object.values === 'function' && Object.values(data).length > 0) data = Object.values(data);
+        else data = [data];
+      }
+      var rows = Array.isArray(data) ? data : (data ? [data] : []);
+      console.log('[Warehouse Stocks] RPC rows fetched', rows.length);
+      allRows = rows.map(function(row) {
+        return {
+          product_id: row.product_id || null,
+          barcode: row.barcode != null ? row.barcode : '',
+          name: row.name != null ? row.name : '',
+          size: row.size != null ? row.size : '',
+          color: row.color != null ? row.color : '',
+          quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0),
+          updated_at: row.updated_at || null,
+          location_id: row.location_id || null
+        };
+      });
+      if (allRows.length > 0 && allRows[0].location_id) currentLocationId = allRows[0].location_id;
+      filterRows();
+    } catch (err) {
+      allRows = [];
       tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
-      return;
     }
-    if (data && typeof data === 'string') {
-      try { data = JSON.parse(data); } catch (_) {}
-    }
-    if (data && typeof data === 'object' && data !== null && !Array.isArray(data)) {
-      if (Array.isArray(data.data)) data = data.data;
-      else if (typeof Object.values === 'function' && Object.values(data).length > 0 && typeof Object.values(data)[0] === 'object' && Object.values(data)[0] !== null)
-        data = Object.values(data);
-      else data = [data];
-    }
-    var raw = Array.isArray(data) ? data : (data ? [data] : []);
-    function norm(row) {
-      if (!row || typeof row !== 'object') return { product_id: null, barcode: '', name: '', size: '', color: '', quantity: 0 };
-      return {
-        product_id: row.product_id || row.id || null,
-        barcode: row.barcode != null ? row.barcode : '',
-        name: row.name != null ? row.name : '',
-        size: row.size != null ? row.size : '',
-        color: row.color != null ? row.color : '',
-        quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
-      };
-    }
-    allRows = raw.map(norm);
-    filterRows();
   }
 
   document.querySelectorAll('.sd-filter-btn').forEach(function(btn) {
