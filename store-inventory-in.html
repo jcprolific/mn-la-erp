@@ -570,6 +570,7 @@
     }
   }
 
+  var scanTimer = null;
   if (!barcodeInput) {
     console.warn('Barcode input element not found on page');
   } else {
@@ -582,7 +583,16 @@
       setBarcodeStatus(false);
     });
     barcodeInput.addEventListener('input', function(e) {
-      console.log('Barcode input value:', e.target.value);
+      var code = (e.target.value || '').trim().replace(/\r?\n/g, '');
+      if (code.length >= 5) {
+        clearTimeout(scanTimer);
+        scanTimer = setTimeout(function() {
+          scanTimer = null;
+          handleBarcodeScan(code);
+          barcodeInput.value = '';
+          if (barcodeInput) barcodeInput.focus();
+        }, 200);
+      }
     });
     barcodeInput.addEventListener('keydown', async function(e) {
       // #region agent log
@@ -590,6 +600,8 @@
       _debugLog('store-inventory-in.html:keydown', 'Barcode keydown', { key: e.key, inputValue: (e.target && e.target.value) || '' }, 'H1');
       // #endregion
       if (e.key === 'Enter') {
+        clearTimeout(scanTimer);
+        scanTimer = null;
         e.preventDefault();
         e.stopPropagation();
         var input = barcodeInput;
