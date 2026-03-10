@@ -1,0 +1,248 @@
+/* ============================================================
+   MN+LA Store — Mobile UI (layout/CSS only, no logic changes)
+   Breakpoint: 768px. Desktop unchanged above that.
+   ============================================================ */
+
+/* ---------- Hamburger: show only on mobile ---------- */
+.store-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: 8px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs, 8px);
+  color: var(--text-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.store-hamburger .material-icons-round { font-size: 24px; }
+.store-hamburger:hover { background: rgba(255,255,255,.08); }
+
+/* Barcode search (done) button — desktop: next to input; mobile: prominent tap target */
+.sd-barcode-search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  background: rgba(122,159,196,.25);
+  border: 1px solid rgba(122,159,196,.4);
+  border-radius: 10px;
+  color: #aac8e8;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.sd-barcode-search-btn:hover { background: rgba(122,159,196,.35); }
+.sd-barcode-search-btn .material-icons-round { font-size: 22px; }
+
+/* ---------- Drawer overlay ---------- */
+.store-drawer-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.store-drawer-overlay.is-open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .store-hamburger { display: flex; }
+
+  .store-drawer-overlay { display: block; }
+
+  .store-layout {
+    position: relative;
+  }
+
+  .store-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 85vw;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,.3);
+    padding-top: calc(var(--nav-height, 60px) + 16px);
+  }
+
+  body.store-drawer-open .store-sidebar {
+    transform: translateX(0);
+  }
+
+  .store-main {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 100px;
+  }
+
+  /* ---------- Dashboard: full-width content, prominent quick actions ---------- */
+  .sd-page { padding: 16px 16px 100px; max-width: 100%; }
+  .sd-header { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 20px; }
+  .sd-topbar { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .sd-store-selector { min-width: 0; width: 100%; padding: 12px 16px; }
+  .sd-store-selector select { min-width: 0; }
+  .sd-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .sd-stat { padding: 14px 12px; min-height: 0; }
+  .sd-stat__value { font-size: 1.25rem; }
+  .sd-stat__label { font-size: 0.7rem; }
+  .sd-barcode-quick { margin-bottom: 16px; }
+  .sd-barcode-quick__link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    font-size: 1rem;
+    min-height: 52px;
+  }
+  .sd-action-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .sd-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 20px;
+    font-size: 0.95rem;
+    min-height: 52px;
+    width: 100%;
+  }
+  .sd-section-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .sd-tabs { flex-wrap: wrap; gap: 8px; }
+  .sd-product-grid { grid-template-columns: 1fr; }
+
+  /* ---------- Inventory In: barcode section stack, full-width, sticky button ---------- */
+  .sd-barcode-row .sd-barcode-input-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .sd-barcode-input-wrap .sd-barcode-icon-btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+  .sd-barcode-input-wrap .sd-barcode-input {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  .sd-barcode-search-btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
+  }
+  .sd-barcode-search-btn .material-icons-round { font-size: 24px; }
+  #barcodeDebugBlock { display: none !important; }
+  /* Scrollable inventory list: wrapper scrolls so product details stay on page */
+  .sd-inventory-list-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -4px 12px;
+    padding-bottom: 4px;
+  }
+  .sd-inventory-list-scroll .sd-list-table {
+    display: table;
+    min-width: 680px;
+    margin: 0;
+  }
+  .sd-list-table th,
+  .sd-list-table td {
+    padding: 12px 10px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .sd-list-table th:nth-child(1), .sd-list-table td:nth-child(1) { min-width: 180px; }
+  .sd-list-table th:nth-child(2), .sd-list-table td:nth-child(2) { min-width: 80px; }
+  .sd-list-table th:nth-child(3), .sd-list-table td:nth-child(3) { min-width: 80px; }
+  .sd-list-table th:nth-child(7), .sd-list-table td:nth-child(7) { min-width: 90px; }
+  .sd-submit-row {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 0 24px;
+    margin-top: 20px;
+    background: var(--bg-primary);
+    border-top: 1px solid rgba(255,255,255,.06);
+    z-index: 10;
+  }
+  .sd-submit-row .sd-btn-primary {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+    justify-content: center;
+  }
+  .sd-branch-badge { padding: 12px 16px; font-size: 0.9rem; }
+  .sd-card { padding: 16px; margin-bottom: 16px; }
+  .sd-page-title { font-size: 1.25rem; }
+  .sd-form-group { margin-bottom: 14px; }
+
+  /* ---------- Branch Stocks: scrollable table + wrap toolbar ---------- */
+  .sd-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .sd-toolbar .sd-search { min-width: 0; width: 100%; }
+  .sd-toolbar .sd-filter-btn { flex: 1; min-height: 44px; }
+  .sd-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -16px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  .sd-table { min-width: 520px; }
+  .sd-table th, .sd-table td {
+    padding: 12px 14px;
+    font-size: 0.85rem;
+  }
+  .sd-table th:nth-child(1), .sd-table td:nth-child(1) { min-width: 90px; }
+  .sd-table th:nth-child(2), .sd-table td:nth-child(2) { min-width: 160px; white-space: normal; }
+  .sd-table th:nth-child(5), .sd-table td:nth-child(5) { min-width: 70px; }
+  .sd-table th:nth-child(6), .sd-table td:nth-child(6) { min-width: 88px; }
+  .sd-table .sd-btn-icon { min-width: 40px; min-height: 40px; }
+  #refreshStocksBtn { margin-left: 0; min-height: 44px; }
+
+  /* ---------- Sales Today / Inventory Out: same main full-width ---------- */
+  .store-main .sd-page-title { font-size: 1.25rem; }
+}
+
+/* Touch-friendly: ensure minimum tap targets */
+@media (max-width: 768px) {
+  .store-sidebar__link {
+    min-height: 48px;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+  }
+  .sd-btn-primary, .sd-action-btn, .sd-barcode-quick__link {
+    min-height: 48px;
+  }
+}

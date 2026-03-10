@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="store-mobile.css" />
   <style>
     .store-layout { display: flex; min-height: calc(100vh - var(--nav-height)); padding-top: var(--nav-height); }
     .store-sidebar { width: 200px; flex-shrink: 0; background: var(--bg-secondary); border-right: 1px solid rgba(255,255,255,.06); padding: 16px 0; }
@@ -33,11 +34,27 @@
     .sd-qty-low { color: #a8935c; font-weight: 600; }
     .sd-qty-zero { color: var(--text-muted); }
     .sd-empty { text-align: center; padding: 48px 20px; color: var(--text-muted); font-size: .9rem; }
+    .sd-table th:nth-child(6), .sd-table td:nth-child(6) { white-space: nowrap; }
+    .sd-row-actions { display: flex; gap: 6px; align-items: center; }
+    .sd-row-actions .sd-btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; border-radius: 8px; background: rgba(255,255,255,.06); color: var(--text-secondary); cursor: pointer; transition: background .15s, color .15s; }
+    .sd-row-actions .sd-btn-icon:hover { background: rgba(255,255,255,.1); color: var(--text-primary); }
+    .sd-row-actions .sd-btn-icon.sd-btn-edit:hover { background: rgba(122,159,196,.2); color: #7a9fc4; }
+    .sd-row-actions .sd-btn-icon.sd-btn-delete:hover { background: rgba(220,53,69,.15); color: #dc3545; }
+    .sd-row-actions .sd-btn-icon .material-icons-round { font-size: 18px; }
+    .sd-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .sd-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+    .sd-modal-box { position: relative; background: var(--bg-card); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 24px; max-width: 400px; width: 100%; }
+    .sd-modal-title { font-size: 1.1rem; margin: 0 0 8px 0; color: var(--text-primary); }
+    .sd-modal-product { font-size: .85rem; color: var(--text-muted); margin: 0 0 16px 0; }
+    .sd-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .sd-btn-secondary { padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: .9rem; }
+    .sd-btn-secondary:hover { background: rgba(255,255,255,.05); color: var(--text-primary); }
   </style>
 </head>
 <body>
   <nav class="top-nav">
     <div class="nav-left">
+      <button type="button" class="store-hamburger" id="storeMenuBtn" aria-label="Open menu"><span class="material-icons-round">menu</span></button>
       <div class="brand">
         <a href="store.html" style="display:block;"><svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA"><rect x="4" y="4" width="432" height="142" rx="6" fill="none" stroke="white" stroke-width="8" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Inter,sans-serif" font-size="82" font-weight="700">MN+LA</text></svg></a>
       </div>
@@ -57,6 +74,7 @@
   </nav>
 
   <div class="store-layout">
+    <div class="store-drawer-overlay" id="storeDrawerOverlay" aria-hidden="true"></div>
     <aside class="store-sidebar">
       <div class="store-sidebar__header"><span class="material-icons-round">storefront</span> Store</div>
       <nav class="store-sidebar__nav">
@@ -69,7 +87,7 @@
     </aside>
     <main class="store-main">
       <h1 class="sd-page-title">Branch Stocks</h1>
-      <p class="sd-page-sub">Inventory at your assigned branch. Read-only.</p>
+      <p class="sd-page-sub">Inventory at your assigned branch. Adjust quantity or remove items below.</p>
 
       <div class="sd-toolbar">
         <input type="text" class="sd-search" id="searchInput" placeholder="Search by barcode or product name" />
@@ -88,14 +106,36 @@
               <th>Size</th>
               <th>Color</th>
               <th>Quantity</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="stocksBody">
-            <tr><td colspan="5" class="sd-empty">Loading…</td></tr>
+            <tr><td colspan="6" class="sd-empty">Loading…</td></tr>
           </tbody>
         </table>
       </div>
     </main>
+  </div>
+
+  <!-- Modal: Adjust quantity -->
+  <div id="adjustModal" class="sd-modal" role="dialog" aria-labelledby="adjustModalTitle" aria-modal="true" style="display:none;">
+    <div class="sd-modal-backdrop" id="adjustModalBackdrop"></div>
+    <div class="sd-modal-box">
+      <h2 id="adjustModalTitle" class="sd-modal-title">Adjust quantity</h2>
+      <p id="adjustModalProduct" class="sd-modal-product"></p>
+      <div class="sd-form-group">
+        <label for="adjustQtyInput">New quantity</label>
+        <input type="number" id="adjustQtyInput" min="0" step="1" value="0" />
+      </div>
+      <div class="sd-form-group">
+        <label for="adjustReasonInput">Reason (optional)</label>
+        <input type="text" id="adjustReasonInput" placeholder="e.g. Stock count, correction" />
+      </div>
+      <div class="sd-modal-actions">
+        <button type="button" class="sd-btn-secondary" id="adjustModalCancel">Cancel</button>
+        <button type="button" class="sd-btn-primary" id="adjustModalSave">Save</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -108,6 +148,7 @@
   var allRows = [];
   var filter = 'all';
   var searchQ = '';
+  var currentLocationId = null;
 
   async function guard() {
     await window.Auth.guard();
@@ -145,25 +186,106 @@
       var emptyMsg = allRows.length === 0
         ? 'No products in this branch yet. Add products from Inventory In, then click Refresh.'
         : 'No items match.';
-      tbody.innerHTML = '<tr><td colspan="5" class="sd-empty">' + emptyMsg + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">' + emptyMsg + '</td></tr>';
       return;
     }
     tbody.innerHTML = list.map(function(r) {
       var qtyClass = r.quantity === 0 ? 'sd-qty-zero' : (r.quantity <= LOW ? 'sd-qty-low' : '');
-      return '<tr><td>' + (r.barcode || '—') + '</td><td>' + (r.name || '—') + '</td><td>' + (r.size || '—') + '</td><td>' + (r.color || '—') + '</td><td class="' + qtyClass + '">' + r.quantity + '</td></tr>';
+      var pid = (r.product_id || '').replace(/"/g, '&quot;');
+      var actions = pid
+        ? '<div class="sd-row-actions"><button type="button" class="sd-btn-icon sd-btn-edit" data-action="edit" data-product-id="' + pid + '" aria-label="Adjust quantity"><span class="material-icons-round">edit</span></button><button type="button" class="sd-btn-icon sd-btn-delete" data-action="delete" data-product-id="' + pid + '" aria-label="Remove from branch"><span class="material-icons-round">delete</span></button></div>'
+        : '—';
+      return '<tr data-product-id="' + pid + '"><td>' + (r.barcode || '—') + '</td><td>' + (r.name || '—') + '</td><td>' + (r.size || '—') + '</td><td>' + (r.color || '—') + '</td><td class="' + qtyClass + '">' + r.quantity + '</td><td>' + actions + '</td></tr>';
     }).join('');
+    tbody.querySelectorAll('.sd-btn-edit, .sd-btn-delete').forEach(function(btn) {
+      btn.addEventListener('click', handleRowAction);
+    });
+  }
+
+  function handleRowAction(e) {
+    var btn = e.currentTarget;
+    var productId = btn.getAttribute('data-product-id');
+    var action = btn.getAttribute('data-action');
+    if (!productId) return;
+    var row = allRows.find(function(r) { return (r.product_id || '') === productId; });
+    if (action === 'edit' && row) openAdjustModal(row);
+    if (action === 'delete' && row) confirmDeleteRow(row);
+  }
+
+  function openAdjustModal(row) {
+    var modal = document.getElementById('adjustModal');
+    var productEl = document.getElementById('adjustModalProduct');
+    var qtyInput = document.getElementById('adjustQtyInput');
+    var reasonInput = document.getElementById('adjustReasonInput');
+    if (!modal || !productEl || !qtyInput) return;
+    modal._adjustRow = row;
+    productEl.textContent = (row.name || row.barcode || 'Product') + (row.barcode ? ' · ' + row.barcode : '');
+    qtyInput.value = Math.max(0, parseInt(row.quantity, 10) || 0);
+    if (reasonInput) reasonInput.value = '';
+    modal.style.display = 'flex';
+    qtyInput.focus();
+  }
+
+  function closeAdjustModal() {
+    var modal = document.getElementById('adjustModal');
+    if (modal) { modal.style.display = 'none'; modal._adjustRow = null; }
+  }
+
+  async function saveAdjust() {
+    var modal = document.getElementById('adjustModal');
+    var row = modal && modal._adjustRow;
+    var qtyInput = document.getElementById('adjustQtyInput');
+    var reasonInput = document.getElementById('adjustReasonInput');
+    if (!row || !row.product_id || !window.db) return;
+    var newQty = parseInt(qtyInput && qtyInput.value, 10);
+    if (isNaN(newQty) || newQty < 0) {
+      if (window.Auth.toast) window.Auth.toast('Enter a valid quantity (0 or more).', 'error');
+      return;
+    }
+    var reason = (reasonInput && reasonInput.value && reasonInput.value.trim()) || null;
+    try {
+      var res = await window.db.rpc('set_inventory_count', {
+        p_product_id: row.product_id,
+        p_counted_quantity: newQty,
+        p_reason: reason
+      });
+      if (res.error) throw res.error;
+      if (window.Auth.toast) window.Auth.toast('Quantity updated.', 'success');
+      closeAdjustModal();
+      loadStocks();
+    } catch (err) {
+      if (window.Auth.toast) window.Auth.toast(err.message || 'Failed to update quantity.', 'error');
+    }
+  }
+
+  async function confirmDeleteRow(row) {
+    var msg = 'Remove "' + (row.name || row.barcode || 'this product') + '" from branch stock? Quantity will be set to zero (row removed).';
+    if (!window.confirm(msg)) return;
+    if (!window.db || !currentLocationId) {
+      if (window.Auth.toast) window.Auth.toast('Cannot delete: missing location.', 'error');
+      return;
+    }
+    try {
+      var res = await window.db.from('inventory').delete().eq('product_id', row.product_id).eq('location_id', currentLocationId).select();
+      if (res.error) throw res.error;
+      if (window.Auth.toast) window.Auth.toast('Item removed from branch stock.', 'success');
+      loadStocks();
+    } catch (err) {
+      if (window.Auth.toast) window.Auth.toast(err.message || 'Failed to remove item.', 'error');
+    }
   }
 
   async function loadStocks() {
     if (!window.db) return;
     var tbody = document.getElementById('stocksBody');
-    tbody.innerHTML = '<tr><td colspan="5" class="sd-empty">Loading…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">Loading…</td></tr>';
     var locationId = null;
     try {
       var pr = await window.db.rpc('get_my_profile');
       var prof = (pr && pr.data) ? (Array.isArray(pr.data) ? pr.data[0] : pr.data) : null;
       locationId = prof && prof.location_id ? prof.location_id : null;
     } catch (_) {}
+    currentLocationId = locationId;
     if (locationId) {
       var direct = await window.db.from('inventory').select('quantity, product_id, products(barcode, name, size, color, sku)').eq('location_id', locationId);
       if (!direct.error && direct.data && Array.isArray(direct.data)) {
@@ -172,6 +294,7 @@
           if (Array.isArray(p)) p = p[0];
           if (!p || typeof p !== 'object') p = {};
           return {
+            product_id: row.product_id || null,
             barcode: p.barcode != null ? p.barcode : '',
             name: p.name != null ? p.name : '',
             size: p.size != null ? p.size : '',
@@ -192,6 +315,7 @@
         allRows = invOnly.data.map(function(row) {
           var p = prodMap[row.product_id] || {};
           return {
+            product_id: row.product_id || null,
             barcode: p.barcode != null ? p.barcode : '',
             name: p.name != null ? p.name : '',
             size: p.size != null ? p.size : '',
@@ -206,7 +330,7 @@
     var res = await window.db.rpc('get_store_branch_stocks', locationId ? { p_location_id: locationId } : {});
     var data = res.data, error = res.error;
     if (error) {
-      tbody.innerHTML = '<tr><td colspan="5" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
       return;
     }
     if (data && typeof data === 'string') {
@@ -220,8 +344,15 @@
     }
     var raw = Array.isArray(data) ? data : (data ? [data] : []);
     function norm(row) {
-      if (!row || typeof row !== 'object') return { barcode: '', name: '', size: '', color: '', quantity: 0 };
-      return { barcode: row.barcode != null ? row.barcode : '', name: row.name != null ? row.name : '', size: row.size != null ? row.size : '', color: row.color != null ? row.color : '', quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0) };
+      if (!row || typeof row !== 'object') return { product_id: null, barcode: '', name: '', size: '', color: '', quantity: 0 };
+      return {
+        product_id: row.product_id || row.id || null,
+        barcode: row.barcode != null ? row.barcode : '',
+        name: row.name != null ? row.name : '',
+        size: row.size != null ? row.size : '',
+        color: row.color != null ? row.color : '',
+        quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
+      };
     }
     allRows = raw.map(norm);
     filterRows();
@@ -242,6 +373,17 @@
   var refreshBtn = document.getElementById('refreshStocksBtn');
   if (refreshBtn) refreshBtn.addEventListener('click', function() { loadStocks(); if (window.Auth.toast) window.Auth.toast('Refreshed.', 'success'); });
 
+  var adjustModal = document.getElementById('adjustModal');
+  var adjustModalBackdrop = document.getElementById('adjustModalBackdrop');
+  var adjustModalCancel = document.getElementById('adjustModalCancel');
+  var adjustModalSave = document.getElementById('adjustModalSave');
+  if (adjustModalBackdrop) adjustModalBackdrop.addEventListener('click', closeAdjustModal);
+  if (adjustModalCancel) adjustModalCancel.addEventListener('click', closeAdjustModal);
+  if (adjustModalSave) adjustModalSave.addEventListener('click', saveAdjust);
+  document.getElementById('adjustQtyInput') && document.getElementById('adjustQtyInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); saveAdjust(); }
+  });
+
   guard().then(function(ok) {
     if (ok) loadStocks();
   });
@@ -249,6 +391,29 @@
     if (document.visibilityState === 'visible') loadStocks();
   });
 })();
+
+  (function() {
+    function closeDrawer() {
+      document.body.classList.remove('store-drawer-open');
+      var o = document.getElementById('storeDrawerOverlay');
+      if (o) o.classList.remove('is-open');
+    }
+    function openDrawer() {
+      document.body.classList.add('store-drawer-open');
+      var o = document.getElementById('storeDrawerOverlay');
+      if (o) o.classList.add('is-open');
+    }
+    function toggleDrawer() {
+      if (document.body.classList.contains('store-drawer-open')) closeDrawer(); else openDrawer();
+    }
+    var btn = document.getElementById('storeMenuBtn') || document.getElementById('mobileMenuBtn');
+    var overlay = document.getElementById('storeDrawerOverlay');
+    if (btn) btn.addEventListener('click', toggleDrawer);
+    if (overlay) overlay.addEventListener('click', closeDrawer);
+    document.querySelectorAll('.store-sidebar__link').forEach(function(link) {
+      link.addEventListener('click', closeDrawer);
+    });
+  })();
   </script>
 </body>
 </html>
