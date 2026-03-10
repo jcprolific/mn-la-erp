@@ -5,6 +5,9 @@
 (function () {
     'use strict';
 
+    /* ---------- Demo access: change this password to restrict "Enter as Demo" ---------- */
+    const DEMO_ACCESS_PASSWORD = 'mnla123';
+
     /* ---------- Element refs ---------- */
     const form = document.getElementById('loginForm');
     const emailInput = document.getElementById('loginEmail');
@@ -136,27 +139,66 @@
         }
     });
 
-    /* ---------- Demo Login ---------- */
+    /* ---------- Demo Login (with password gate) ---------- */
     const demoBtn = document.getElementById('demoLogin');
-    demoBtn.addEventListener('click', () => {
-        // Mark demo session
-        localStorage.setItem('mnla_demo', 'true');
+    const demoOverlay = document.getElementById('demoPasswordOverlay');
+    const demoPasswordForm = document.getElementById('demoPasswordForm');
+    const demoPasswordInput = document.getElementById('demoPasswordInput');
+    const demoPasswordError = document.getElementById('demoPasswordError');
+    const demoPasswordCancel = document.getElementById('demoPasswordCancel');
 
-        // Fake profile for the demo user
+    function openDemoModal() {
+        demoPasswordError.style.display = 'none';
+        demoPasswordError.textContent = '';
+        demoPasswordInput.value = '';
+        demoOverlay.style.display = 'flex';
+        demoPasswordInput.focus();
+    }
+
+    function closeDemoModal() {
+        demoOverlay.style.display = 'none';
+        demoPasswordInput.value = '';
+        demoPasswordError.style.display = 'none';
+        demoPasswordError.textContent = '';
+    }
+
+    function doDemoLogin() {
+        localStorage.setItem('mnla_demo', 'true');
         const demoProfile = {
             full_name: 'Demo User',
             role: 'owner',
             location_id: null,
         };
         localStorage.setItem('mnla_profile', JSON.stringify(demoProfile));
-
-        // Set a welcome message
         sessionStorage.setItem('mnla_welcome', JSON.stringify({
             full_name: 'Demo User',
             role: 'Demo Mode',
         }));
-
         window.location.replace('index.html');
+    }
+
+    demoBtn.addEventListener('click', () => openDemoModal());
+
+    demoPasswordForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const entered = (demoPasswordInput.value || '').trim();
+        if (entered !== DEMO_ACCESS_PASSWORD) {
+            demoPasswordError.textContent = 'Incorrect password. Try again.';
+            demoPasswordError.style.display = 'block';
+            demoPasswordInput.focus();
+            return;
+        }
+        closeDemoModal();
+        doDemoLogin();
+    });
+
+    demoPasswordCancel.addEventListener('click', () => closeDemoModal());
+
+    demoOverlay.addEventListener('click', (e) => {
+        if (e.target === demoOverlay) closeDemoModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && demoOverlay.style.display === 'flex') closeDemoModal();
     });
 
     /* ---------- If already signed in, skip login ---------- */

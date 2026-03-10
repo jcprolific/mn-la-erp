@@ -1006,6 +1006,56 @@ a {
   text-align: center;
 }
 
+/* ---- Demo password modal ---- */
+.demo-password-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+.demo-password-box {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+.demo-password-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+.demo-password-hint {
+  font-size: .85rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.demo-password-form .form-field {
+  margin-bottom: 12px;
+}
+.demo-password-error {
+  font-size: .8rem;
+  color: var(--badge-red);
+  margin-bottom: 12px;
+  min-height: 1.2em;
+}
+.demo-password-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.demo-password-actions .btn {
+  min-width: 90px;
+}
+
 
 /* ============================================================
    USER CHIP  (in dashboard nav)

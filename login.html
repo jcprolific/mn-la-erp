@@ -95,6 +95,25 @@
         <p class="login-footer">MN+LA ERP &copy; 2025 &nbsp;·&nbsp; All rights reserved</p>
     </div>
 
+    <!-- Demo password modal (shown when user clicks Enter as Demo) -->
+    <div class="demo-password-overlay" id="demoPasswordOverlay" role="dialog" aria-labelledby="demoPasswordTitle" aria-modal="true" style="display:none;">
+        <div class="demo-password-box">
+            <h2 class="demo-password-title" id="demoPasswordTitle">Demo access</h2>
+            <p class="demo-password-hint">Enter the demo password to continue.</p>
+            <form id="demoPasswordForm" class="demo-password-form">
+                <div class="form-field">
+                    <label class="form-label" for="demoPasswordInput">Password</label>
+                    <input class="input" id="demoPasswordInput" type="password" placeholder="••••••••" autocomplete="off" />
+                </div>
+                <p class="demo-password-error" id="demoPasswordError" role="alert" style="display:none;"></p>
+                <div class="demo-password-actions">
+                    <button type="button" class="btn btn--secondary" id="demoPasswordCancel">Cancel</button>
+                    <button type="submit" class="btn btn--demo">Enter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast container (injected by auth.js) -->
     <div id="toastContainer"></div>
 
