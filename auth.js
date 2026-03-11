@@ -192,9 +192,11 @@
         if (!chip || !Auth.profile) return;
         const { full_name, role, locations } = Auth.profile;
         const locationName = locations?.name || '';
+        const displayRole = (role || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        const label = locationName ? displayRole + ' · ' + locationName : displayRole;
         chip.innerHTML = `
       <span class="user-chip__name">${full_name || 'User'}</span>
-      <span class="user-chip__role">${role || ''}${locationName ? ` • ${locationName}` : ''}</span>
+      <span class="user-chip__role">${label}</span>
     `;
         chip.style.display = 'flex';
     }

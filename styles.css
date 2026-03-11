@@ -91,7 +91,7 @@ a {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 1050;
   height: var(--nav-height);
   display: flex;
   align-items: center;
@@ -132,6 +132,10 @@ a {
 
 .mobile-menu-btn {
   display: flex;
+  min-width: 48px;
+  min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Brand */
@@ -1064,34 +1068,41 @@ a {
   display: none;
   /* shown by auth.js after load */
   align-items: center;
+  align-self: center;
   gap: 8px;
-  padding: 4px 10px 4px 4px;
-  background: rgba(255, 255, 255, .04);
-  border: 1px solid rgba(255, 255, 255, .07);
+  padding: 6px 12px 6px 6px;
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 10px;
   cursor: default;
+  max-width: min(220px, 50vw);
+  min-height: 36px;
+  line-height: 1.3;
 }
 
 .user-chip__name {
   font-size: .78rem;
   font-weight: 600;
   color: var(--text-primary);
-  max-width: 120px;
+  max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .user-chip__role {
-  font-size: .65rem;
+  font-size: .68rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: #000;
-  background: #fff;
+  letter-spacing: .02em;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, .1);
   border-radius: 5px;
-  padding: 2px 7px;
+  padding: 3px 8px;
   white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 

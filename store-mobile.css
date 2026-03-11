@@ -8,18 +8,25 @@
   display: none;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  min-width: 48px;
+  min-height: 48px;
+  width: 48px;
+  height: 48px;
   margin-right: 8px;
+  padding: 0;
   background: transparent;
   border: none;
   border-radius: var(--radius-xs, 8px);
   color: var(--text-primary);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 1060;
+  touch-action: manipulation;
 }
 .store-hamburger .material-icons-round { font-size: 24px; }
 .store-hamburger:hover { background: rgba(255,255,255,.08); }
+.store-hamburger:active { background: rgba(255,255,255,.12); }
 
 /* Barcode search (done) button — desktop: next to input; mobile: prominent tap target */
 .sd-barcode-search-btn {
@@ -39,26 +46,67 @@
 .sd-barcode-search-btn:hover { background: rgba(122,159,196,.35); }
 .sd-barcode-search-btn .material-icons-round { font-size: 22px; }
 
-/* ---------- Drawer overlay ---------- */
+/* ---------- Drawer overlay: below nav so hamburger stays clickable ---------- */
 .store-drawer-overlay {
   display: none;
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.5);
-  z-index: 999;
+  z-index: 998;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
   pointer-events: none;
 }
 .store-drawer-overlay.is-open {
   pointer-events: auto;
   opacity: 1;
+  visibility: visible;
 }
 
 @media (max-width: 768px) {
   .store-hamburger { display: flex; }
 
   .store-drawer-overlay { display: block; }
+
+  /* Header: keep nav above overlay, prevent overflow, dark-theme badge */
+  .top-nav {
+    z-index: 1050;
+  }
+  .nav-right {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 8px;
+  }
+  .profile-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 6px 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .profile-btn .profile-avatar {
+    flex-shrink: 0;
+  }
+  .profile-btn .profile-chevron {
+    flex-shrink: 0;
+  }
+  .user-chip {
+    max-width: min(200px, 45vw);
+    min-height: 44px;
+  }
+  .user-chip__name {
+    max-width: 80px;
+  }
+  .brand a {
+    background: transparent;
+    border-radius: 8px;
+    padding: 4px 0;
+  }
+  .nav-logo {
+    max-height: 38px;
+    width: auto;
+    max-width: 140px;
+  }
 
   .store-layout {
     position: relative;
@@ -71,7 +119,7 @@
     bottom: 0;
     width: 280px;
     max-width: 85vw;
-    z-index: 1000;
+    z-index: 999;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     box-shadow: 4px 0 24px rgba(0,0,0,.3);
@@ -88,6 +136,10 @@
     padding-left: 16px;
     padding-right: 16px;
     padding-bottom: 100px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
   }
 
   /* ---------- Dashboard: full-width content, prominent quick actions ---------- */
@@ -158,18 +210,29 @@
   }
   .sd-barcode-search-btn .material-icons-round { font-size: 24px; }
   #barcodeDebugBlock { display: none !important; }
-  /* Scrollable inventory list: wrapper scrolls so product details stay on page */
+  /* Scrollable inventory list: horizontal + vertical scroll so product rows are visible on mobile */
   .sd-inventory-list-scroll {
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    max-height: min(55vh, 400px);
     margin: 0 -4px 12px;
     padding-bottom: 4px;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    background: var(--bg-primary);
   }
   .sd-inventory-list-scroll .sd-list-table {
     display: table;
     min-width: 680px;
     margin: 0;
+  }
+  .sd-inventory-list-scroll .sd-list-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--bg-card);
+    box-shadow: 0 1px 0 rgba(255,255,255,.06);
   }
   .sd-list-table th,
   .sd-list-table td {
@@ -226,20 +289,23 @@
     flex: 0 0 auto;
     margin-left: 0;
   }
+  /* Warehouse Stocks / Branch Stocks: table as scrollable slider (vertical + horizontal until Quantity/Actions) */
   .sd-table-wrap {
     width: 100%;
     min-width: 0;
     max-width: 100%;
+    min-height: 280px;
+    max-height: min(72vh, 520px);
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     margin: 0 -16px;
     padding-right: 16px;
     margin-bottom: 16px;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.08);
     scroll-behavior: smooth;
+    overscroll-behavior: contain;
   }
   .sd-table-wrap .sd-table {
     min-width: 680px;
@@ -254,17 +320,19 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: rgba(255,255,255,.03);
+    background: var(--bg-card);
     box-shadow: 0 1px 0 rgba(255,255,255,.06);
   }
   .sd-table th, .sd-table td {
     padding: 12px 14px;
     font-size: 0.85rem;
   }
-  .sd-table th:nth-child(1), .sd-table td:nth-child(1) { min-width: 90px; }
+  .sd-table th:nth-child(1), .sd-table td:nth-child(1) { min-width: 88px; }
   .sd-table th:nth-child(2), .sd-table td:nth-child(2) { min-width: 160px; white-space: normal; }
-  .sd-table th:nth-child(5), .sd-table td:nth-child(5) { min-width: 70px; }
-  .sd-table th:nth-child(6), .sd-table td:nth-child(6) { min-width: 88px; }
+  .sd-table th:nth-child(3), .sd-table td:nth-child(3) { min-width: 56px; }
+  .sd-table th:nth-child(4), .sd-table td:nth-child(4) { min-width: 72px; }
+  .sd-table th:nth-child(5), .sd-table td:nth-child(5) { min-width: 82px; }
+  .sd-table th:nth-child(6), .sd-table td:nth-child(6) { min-width: 100px; }
   .sd-table .sd-btn-icon { min-height: 40px; min-width: 40px; }
   .sd-table tbody tr.sd-row-clickable {
     -webkit-tap-highlight-color: rgba(122,159,196,.15);

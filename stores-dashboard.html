@@ -122,12 +122,6 @@
   var selectedStoreId = null;
   var allRows = [];
   var searchQuery = '';
-  // #region agent log
-  var _log = function (msg, data, hypothesisId) {
-        var payload = { sessionId: 'a77fd4', location: 'stores-dashboard.html', message: msg, data: data || {}, hypothesisId: hypothesisId || null, timestamp: Date.now() };
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a77fd4' }, body: JSON.stringify(payload) }).catch(function () {});
-      };
-  // #endregion
 
   function canSwitchStores() {
     var profile = window.Auth && window.Auth.profile;
@@ -169,9 +163,6 @@
     var profile = window.Auth && window.Auth.profile;
     if (profile && profile.role === 'store_associate' && profile.location_id) {
       var single = await window.db.from('locations').select('id, name').eq('id', profile.location_id).maybeSingle();
-      // #region agent log
-      _log('loadStoreList store_associate', { hasData: !!single.data, locationId: profile.location_id, storeName: single.data && single.data.name }, 'H2');
-      // #endregion
       if (single.data) {
         storeList = [single.data];
         selectedStoreId = single.data.id;
@@ -179,9 +170,6 @@
       return;
     }
     var res = await window.db.from('locations').select('id, name').eq('type', 'store').order('name');
-    // #region agent log
-    _log('loadStoreList locations', { error: res.error && res.error.message, count: res.data && res.data.length, firstNames: (res.data || []).slice(0, 3).map(function (l) { return l.name; }) }, 'H2');
-    // #endregion
     if (res.data && Array.isArray(res.data)) storeList = res.data;
     if (storeList.length >= 1 && !selectedStoreId) selectedStoreId = storeList[0].id;
   }
@@ -191,9 +179,6 @@
     sel.innerHTML = '';
     if (storeList.length === 0) {
       sel.appendChild(new Option('— No stores —', ''));
-      // #region agent log
-      _log('renderStoreSelect no stores', {}, 'H3');
-      // #endregion
       return;
     }
     var canSwitch = canSwitchStores();
@@ -205,9 +190,6 @@
     sel.value = defaultId;
     if (!selectedStoreId && storeList[0]) selectedStoreId = storeList[0].id;
     sel.disabled = !canSwitch;
-    // #region agent log
-    _log('renderStoreSelect', { storeCount: storeList.length, selectedStoreId: selectedStoreId, defaultId: defaultId }, 'H3');
-    // #endregion
   }
 
   var realtimeChannel = null;
@@ -234,10 +216,6 @@
         .from('inventory')
         .select('product_id, quantity, products(barcode, sku, name, category, size, color)')
         .eq('location_id', locationId);
-      // #region agent log
-      _log('loadInventoryForStore', { locationId: locationId, error: res.error && res.error.message, rowCount: (res.data && res.data.length) || 0, firstRowProducts: (res.data && res.data[0]) ? typeof res.data[0].products : null }, 'H1');
-      if (res.data && res.data[0]) _log('first row product shape', { keys: res.data[0].products ? Object.keys(res.data[0].products) : [], hasBarcode: res.data[0].products && 'barcode' in (res.data[0].products || {}) }, 'H5');
-      // #endregion
       if (res.error) {
         tbody.innerHTML = '<tr><td colspan="7" class="stores-empty">Error loading inventory. Try again.</td></tr>';
         allRows = [];
@@ -262,9 +240,6 @@
       });
       renderStatsAndTable();
       realtimeChannel = window.db.channel('inventory-stores-' + locationId).on('postgres_changes', { event: '*', schema: 'public', table: 'inventory', filter: 'location_id=eq.' + locationId }, function () {
-        // #region agent log
-        _log('realtime inventory event', { locationId: locationId }, 'H4');
-        // #endregion
         loadInventoryForStore(locationId);
       }).subscribe();
     } catch (err) {
@@ -338,11 +313,6 @@
       renderStatsAndTable();
     });
     if (selectedStoreId) loadInventoryForStore(selectedStoreId);
-    else {
-      // #region agent log
-      _log('init no selectedStoreId', { storeListLength: storeList.length }, 'H3');
-      // #endregion
-    }
   }
 
   init();

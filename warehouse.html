@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="store-mobile.css" />
   <style>
     .wh-page { padding: 24px 24px 80px; max-width: 1280px; margin: 0 auto; }
     .wh-header { margin-bottom: 24px; }
@@ -91,9 +92,18 @@
     .wh-panel.open { display: block; }
     .wh-panel-title { font-size: .95rem; font-weight: 600; margin-bottom: 14px; color: var(--text-primary); }
     @media (max-width: 640px) { .wh-metrics { grid-template-columns: repeat(2, 1fr); } .wh-actions { grid-template-columns: repeat(2, 1fr); } }
+    .store-layout { display: flex; min-height: calc(100vh - var(--nav-height)); padding-top: var(--nav-height); }
+    .store-sidebar { width: 200px; flex-shrink: 0; background: var(--bg-secondary); border-right: 1px solid rgba(255,255,255,.06); padding: 16px 0; }
+    .store-sidebar__header { display: flex; align-items: center; gap: 8px; padding: 0 16px 12px; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+    .store-sidebar__nav { display: flex; flex-direction: column; gap: 2px; }
+    .store-sidebar__link { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: .85rem; color: var(--text-secondary); text-decoration: none; transition: background .15s, color .15s; }
+    .store-sidebar__link:hover { background: rgba(255,255,255,.05); color: var(--text-primary); }
+    .store-sidebar__link.active { background: rgba(122,159,196,.12); color: #7a9fc4; font-weight: 600; }
+    .store-main { flex: 1; overflow: auto; }
+    body.warehouse-dashboard .user-chip { display: none !important; }
   </style>
 </head>
-<body>
+<body class="warehouse-dashboard">
   <script>
     (async function () {
       if (typeof window.db === 'undefined') await new Promise(r => setTimeout(r, 100));
@@ -102,7 +112,7 @@
 
   <nav class="top-nav" id="topNav">
     <div class="nav-left">
-      <button class="nav-icon-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu"><span class="material-icons-round">menu</span></button>
+      <button type="button" class="store-hamburger" id="storeMenuBtn" aria-label="Open menu"><span class="material-icons-round">menu</span></button>
       <div class="brand">
         <a href="index.html" style="display:block;" title="Back to Main Dashboard">
           <svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA">
@@ -127,7 +137,18 @@
     </div>
   </nav>
 
-  <main class="main-content wh-page">
+  <div class="store-layout">
+    <div class="store-drawer-overlay" id="storeDrawerOverlay" aria-hidden="true"></div>
+    <aside class="store-sidebar">
+      <div class="store-sidebar__header"><span class="material-icons-round">warehouse</span> Warehouse</div>
+      <nav class="store-sidebar__nav">
+        <a href="warehouse.html" class="store-sidebar__link active"><span class="material-icons-round">dashboard</span> Dashboard</a>
+        <a href="warehouse-inventory-in.html" class="store-sidebar__link"><span class="material-icons-round">input</span> Inventory In</a>
+        <a href="warehouse-stocks.html" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> Warehouse Stocks</a>
+        <a href="warehouse.html#sectionItemAvailability" class="store-sidebar__link"><span class="material-icons-round">storefront</span> Item Availability</a>
+      </nav>
+    </aside>
+  <main class="store-main main-content wh-page">
     <a href="index.html" id="backToMaster" class="wh-back" style="display:none;"><span class="material-icons-round" style="font-size:1.2rem;">arrow_back</span> Master Dashboard</a>
     <div id="noWarehouseBanner" class="wh-no-warehouse" role="alert">
       <span class="material-icons-round">warning</span>
@@ -407,6 +428,7 @@
       </div>
     </section>
   </main>
+  </div>
 
   <!-- Inventory In modal -->
   <div class="wh-modal-overlay" id="modalInventoryIn">

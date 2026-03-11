@@ -8,13 +8,6 @@
   var lastNotFoundBarcode = '';
   var isSaving = false;
   function genTraceId() { return 'wh-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9); }
-  function debugLog(message, data, hypothesisId) {
-    var payload = { sessionId: 'a77fd4', location: 'warehouse-inventory-in.js', message: message, data: data || {}, timestamp: Date.now() };
-    if (hypothesisId) payload.hypothesisId = hypothesisId;
-    fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a77fd4' }, body: JSON.stringify(payload) }).catch(function () {});
-  }
-  // #region agent log
-  // #endregion
 
   function $(id) { return document.getElementById(id); }
   function escapeHtml(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -361,9 +354,6 @@
         if (!productId) throw new Error('Could not get product id');
 
         var manualRequestId = 'wh-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-        // #region agent log
-        debugLog('[Warehouse Receive] before save (manual)', { requestId: manualRequestId, barcode: barcode, qty: qty, rpcName: 'warehouse_receive_inventory_v2' }, 'H3');
-        // #endregion
         await receiveIntoWarehouse(productId, qty, notes || 'Manual product add — warehouse inventory in', manualRequestId);
 
         if (barcodeNotFoundWrap) barcodeNotFoundWrap.style.display = 'none';
@@ -421,17 +411,9 @@
   if (btnSubmit) {
     btnSubmit.addEventListener('click', async function (e) {
       if (e) e.preventDefault();
-      if (isSaving) {
-        // #region agent log
-        debugLog('[Warehouse Receive] submit blocked (isSaving)', {}, 'H4');
-        // #endregion
-        return;
-      }
+      if (isSaving) return;
       if (inList.length === 0 || !window.db) return;
       var requestId = 'wh-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-      // #region agent log
-      debugLog('[Warehouse Receive] submit start', { requestId: requestId, inListLength: inList.length }, 'H1');
-      // #endregion
       isSaving = true;
       btnSubmit.disabled = true;
       btnSubmit.textContent = 'Receiving…';
@@ -449,20 +431,15 @@
           var row = inList[i];
           var qty = parseInt(row.quantity, 10);
           if (isNaN(qty) || qty < 1) qty = 1;
-          // #region agent log
-          debugLog('[Warehouse Receive] before save', { requestId: requestId, barcode: row.barcode, qty: qty, rpcName: 'warehouse_receive_inventory_v2' }, 'H2');
-          // #endregion
+          var lineRequestId = requestId + '-' + i;
           try {
-            await receiveIntoWarehouse(row.id, qty, 'warehouse_inventory_in', requestId);
+            await receiveIntoWarehouse(row.id, qty, 'warehouse_inventory_in', lineRequestId);
           } catch (err) {
             errCount++;
             lastError = err.message || err.code || 'Error receiving stock';
             if (window.Auth && window.Auth.toast) window.Auth.toast(lastError, 'error');
           }
         }
-        // #region agent log
-        debugLog('[Warehouse Receive] submit complete', { requestId: requestId, errCount: errCount }, 'H1');
-        // #endregion
         if (errCount > 0 && errEl) {
           errEl.textContent = lastError + (errCount > 1 ? ' (' + errCount + ' items failed)' : '');
           errEl.style.display = 'block';

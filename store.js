@@ -9,6 +9,8 @@
        CONSTANTS
     ──────────────────────────────────────────────────────── */
     const LOW_STOCK_THRESHOLD = 3;
+    /** Match Branch Stocks page: low = quantity > 0 and quantity <= 5 */
+    const LOW_STOCK_BRANCH = 5;
     const SIZES = ['XS', 'S', 'M', 'L', 'XL'];
 
     const STORES = {
@@ -94,6 +96,64 @@
     }
 
     /* ────────────────────────────────────────────────────────
+       BRANCH INVENTORY (same source of truth as Branch Stocks page)
+    ──────────────────────────────────────────────────────── */
+    /**
+     * Load branch inventory using the exact same query as store-branch-stocks.html.
+     * Returns { rows, totalQty, lowStockCount, outOfStockCount }.
+     * rows: same shape as Branch Stocks (product_id, barcode, name, size, color, sku, quantity).
+     */
+    async function loadBranchInventory(locationId) {
+        const empty = { rows: [], totalQty: 0, lowStockCount: 0, outOfStockCount: 0 };
+        if (!window.db || !locationId) return empty;
+        const res = await window.db
+            .from('inventory')
+            .select('quantity, product_id, products(barcode, name, size, color, sku, category, cost_price)')
+            .eq('location_id', locationId);
+        if (res.error || !res.data || !Array.isArray(res.data)) return empty;
+        const rows = res.data.map(row => {
+            const p = row.products != null ? row.products : row.product;
+            const prod = Array.isArray(p) ? p[0] : p;
+            const product = prod && typeof prod === 'object' ? prod : {};
+            const qty = typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0);
+            return {
+                product_id: row.product_id || null,
+                barcode: product.barcode != null ? product.barcode : '',
+                name: product.name != null ? product.name : '',
+                size: product.size != null ? product.size : '',
+                color: product.color != null ? product.color : '',
+                sku: product.sku != null ? product.sku : '',
+                category: product.category != null ? product.category : 'tees',
+                cost_price: product.cost_price != null ? Number(product.cost_price) : 0,
+                quantity: qty
+            };
+        });
+        const totalQty = rows.reduce((sum, r) => sum + (r.quantity || 0), 0);
+        const lowStockCount = rows.filter(r => (r.quantity || 0) > 0 && (r.quantity || 0) <= LOW_STOCK_BRANCH).length;
+        const outOfStockCount = rows.filter(r => (r.quantity || 0) <= 0).length;
+        return { rows, totalQty, lowStockCount, outOfStockCount };
+    }
+
+    /**
+     * Map branch inventory rows (one per product variant, same as Branch Stocks) to dashboard card format.
+     * Each row = one variant = one card with sizes[size] = quantity (no duplicate counting).
+     */
+    function branchRowsToStoreInventory(rows) {
+        return rows.map(r => {
+            const sz = (r.size && String(r.size).trim()) ? String(r.size).trim() : 'OS';
+            const sizes = {};
+            sizes[sz] = r.quantity || 0;
+            return {
+                name: r.name || r.sku || '—',
+                sku: r.sku || '—',
+                category: r.category || 'tees',
+                price: r.cost_price || 0,
+                sizes
+            };
+        });
+    }
+
+    /* ────────────────────────────────────────────────────────
        STATE
     ──────────────────────────────────────────────────────── */
     let currentStoreId = 'one-ayala';
@@ -142,31 +202,42 @@
     /* ────────────────────────────────────────────────────────
        RENDER METRICS
     ──────────────────────────────────────────────────────── */
+    const setStat = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
     async function loadDashboardMetrics() {
-        if (!window.db || !window.Permissions || !window.Permissions.isStoreAssociate()) return;
+        if (!window.db) return;
+        const isStoreAssociate = window.Permissions && window.Permissions.isStoreAssociate();
+        const locationId = window.Session && window.Session.locationId();
+        const storeSelect = document.getElementById('storeSelect');
+        const effectiveLocationId = locationId || (storeSelect && storeSelect.value && storeSelect.value.length > 36 ? storeSelect.value : null);
         try {
+            if (effectiveLocationId) {
+                const { rows, totalQty, lowStockCount } = await loadBranchInventory(effectiveLocationId);
+                storeInventory = branchRowsToStoreInventory(rows);
+                setStat('sdStatUnits', totalQty.toLocaleString());
+                setStat('sdStatLowStock', String(lowStockCount));
+                renderProductGrid();
+            }
             const { data, error } = await window.db.rpc('get_store_dashboard_metrics');
             if (error) throw error;
-            if (!data || data.error) return;
-            const m = data;
-            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-            set('sdStatUnits', (m.branch_stock_count ?? 0).toLocaleString());
-            set('sdStatSales', peso(m.sales_today ?? 0));
-            set('sdStatBestSeller', '—');
-            set('sdStatLowStock', String(m.low_stock_items ?? 0));
-            set('sdStatCash', peso(m.sales_today ?? 0));
-            set('sdStatCod', '₱0');
-            const txnEl = document.getElementById('sdStatTxn');
-            if (txnEl) txnEl.textContent = (m.transactions_today ?? 0).toLocaleString();
-            const pendingEl = document.getElementById('sdStatPendingOut');
-            if (pendingEl) pendingEl.textContent = String(m.pending_inventory_out ?? 0);
+            if (data && !data.error) {
+                const m = data;
+                setStat('sdStatSales', peso(m.sales_today ?? 0));
+                setStat('sdStatCash', peso(m.sales_today ?? 0));
+                setStat('sdStatTxn', (m.transactions_today ?? 0).toLocaleString());
+                setStat('sdStatPendingOut', String(m.pending_inventory_out ?? 0));
+                if (!effectiveLocationId) {
+                    setStat('sdStatUnits', (m.branch_stock_count ?? 0).toLocaleString());
+                    setStat('sdStatLowStock', String(m.low_stock_items ?? 0));
+                }
+            }
+            const bestEl = document.getElementById('sdStatBestSeller');
+            if (bestEl) bestEl.textContent = '—';
         } catch (e) {
-            console.warn('[Store] get_store_dashboard_metrics failed:', e);
-            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-            set('sdStatSales', peso(0));
-            set('sdStatCash', peso(0));
-            const txnEl = document.getElementById('sdStatTxn');
-            if (txnEl) txnEl.textContent = '0';
+            console.warn('[Store] loadDashboardMetrics failed:', e);
+            setStat('sdStatSales', peso(0));
+            setStat('sdStatCash', peso(0));
+            setStat('sdStatTxn', '0');
         }
     }
 
@@ -176,13 +247,12 @@
             return;
         }
         const inv = storeInventory;
-        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-        set('sdStatUnits', totalUnits(inv).toLocaleString());
-        set('sdStatSales', peso(0));
-        set('sdStatTxn', '0');
-        set('sdStatLowStock', String(lowStockCount(inv)));
-        set('sdStatPendingOut', '0');
-        set('sdStatCash', peso(0));
+        setStat('sdStatUnits', totalUnits(inv).toLocaleString());
+        setStat('sdStatSales', peso(0));
+        setStat('sdStatTxn', '0');
+        setStat('sdStatLowStock', String(lowStockCount(inv)));
+        setStat('sdStatPendingOut', '0');
+        setStat('sdStatCash', peso(0));
     }
 
     /* ────────────────────────────────────────────────────────
@@ -214,7 +284,11 @@
             return;
         }
 
-        const sizeList = (p) => p.category === 'accessories' ? ['OS'] : SIZES;
+        const sizeList = (p) => {
+            const base = p.category === 'accessories' ? ['OS'] : SIZES;
+            const fromData = Object.keys(p.sizes || {}).filter(s => !base.includes(s));
+            return [...base, ...fromData];
+        };
         const maxQty = 12; // bar scale
 
         grid.innerHTML = items.map(p => {
@@ -375,14 +449,19 @@
        INIT
     ──────────────────────────────────────────────────────── */
     function init() {
-        // Store associate: lock to assigned location only (visibility + write for this branch)
         if (window.Permissions && window.Permissions.isStoreAssociate() && window.Session && window.Session.locationId()) {
             currentStoreId = window.Session.locationId();
+            const fullName = window.Session.locationName() || 'My Branch';
+            const titleEl = document.getElementById('storeTitle');
+            if (titleEl) titleEl.textContent = fullName;
+            const pillLabel = document.getElementById('sdSwitcherName');
+            if (pillLabel) pillLabel.textContent = fullName.replace(/^MN\+LA™\s*/i, '') || fullName;
+            loadDashboardMetrics();
         } else {
             const storeSel = document.getElementById('storeSelect');
             if (storeSel && storeSel.value) currentStoreId = storeSel.value;
+            switchStore(currentStoreId);
         }
-        switchStore(currentStoreId);
 
         // Set today's date in report picker
         const rdEl = document.getElementById('reportDate');
@@ -547,12 +626,20 @@
         document.addEventListener('click', () => pw?.classList.remove('open'));
     }
 
-    /** Called from store.html after Auth.guard() so store_associate sees their branch. */
+    /** Called from store.html after Auth.guard(); loads real branch inventory for store_associate (same source as Branch Stocks). */
     window.StoreDashboard = window.StoreDashboard || {};
     window.StoreDashboard.setStoreFromSession = function () {
-        if (window.Permissions && window.Permissions.isStoreAssociate() && window.Session && window.Session.locationId()) {
-            currentStoreId = window.Session.locationId();
-            switchStore(currentStoreId);
+        if (!window.Session) return;
+        const locationId = window.Session.locationId();
+        const isStoreAssociate = window.Permissions && window.Permissions.isStoreAssociate();
+        if (isStoreAssociate && locationId) {
+            currentStoreId = locationId;
+            const fullName = window.Session.locationName() || 'My Branch';
+            const titleEl = document.getElementById('storeTitle');
+            if (titleEl) titleEl.textContent = fullName;
+            const pillLabel = document.getElementById('sdSwitcherName');
+            if (pillLabel) pillLabel.textContent = (fullName.replace(/^MN\+LA™\s*/i, '') || fullName);
+            loadDashboardMetrics();
         }
     };
 

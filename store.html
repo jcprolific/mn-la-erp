@@ -1098,6 +1098,13 @@
       letter-spacing: .06em;
     }
 
+    .sd-stat--link {
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      display: block;
+    }
+
     /* Responsive */
     @media(max-width:600px) {
       .sd-form-grid {
@@ -1228,11 +1235,11 @@
         <div class="sd-stat__value" id="sdStatTxn">—</div>
         <div class="sd-stat__label">Transactions Today</div>
       </div>
-      <div class="sd-stat" style="--sc:rgba(122,159,196,.9); --si:rgba(122,159,196,.1); --sic:#7a9fc4;">
+      <a href="store-branch-stocks.html" id="sdStatCardBranchStock" class="sd-stat sd-stat--link" style="--sc:rgba(122,159,196,.9); --si:rgba(122,159,196,.1); --sic:#7a9fc4;" aria-label="Branch Stock Count – go to Branch Stocks page">
         <div class="sd-stat__icon"><span class="material-icons-round">inventory_2</span></div>
         <div class="sd-stat__value" id="sdStatUnits">—</div>
         <div class="sd-stat__label">Branch Stock Count</div>
-      </div>
+      </a>
       <div class="sd-stat" style="--sc:rgba(168,147,92,.9); --si:rgba(168,147,92,.1); --sic:#a8935c;">
         <div class="sd-stat__icon"><span class="material-icons-round">warning_amber</span></div>
         <div class="sd-stat__value" id="sdStatLowStock">—</div>

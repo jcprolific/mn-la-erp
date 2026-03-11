@@ -1007,13 +1007,14 @@
       for (var i = 0; i < inList.length; i++) {
         var row = inList[i];
         var qty = Math.max(1, parseInt(row.quantity, 10) || 1);
+        var lineRequestId = requestId + '-' + i;
         try {
           var { error } = await window.db.rpc('store_receive_inventory_v2', {
             p_product_id: row.id,
             p_store_location_id: locId,
             p_quantity: qty,
             p_notes: 'store_inventory_in',
-            p_request_id: requestId
+            p_request_id: lineRequestId
           });
           if (error) throw error;
         } catch (err) {

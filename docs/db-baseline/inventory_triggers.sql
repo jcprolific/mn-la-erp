@@ -7,7 +7,7 @@
 -- ---------------------------
 -- There are NO row-level triggers on public.inventory or public.inventory_movements.
 -- All inventory receive/update logic is inside RPCs (store_receive_inventory_v2,
--- warehouse_receive_inventory, receive_stock, set_inventory_count). Do not add
+-- warehouse_receive_inventory_v2, warehouse_receive_inventory, receive_stock, set_inventory_count). Do not add
 -- triggers that modify inventory quantity or insert into inventory_movements on
 -- INSERT/UPDATE of these tables, or you risk double-counting (see inventory_rules.md).
 --
@@ -17,12 +17,13 @@
 -- Apply if restoring from baseline and they are missing.
 --
 
--- request_id: idempotency key (same request_id = no duplicate movement)
+-- request_id: idempotency key per (request_id, product_id, destination) so batch receive can have many products
 ALTER TABLE public.inventory_movements
   ADD COLUMN IF NOT EXISTS request_id text;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_movements_request_id_unique
-  ON public.inventory_movements (request_id)
+DROP INDEX IF EXISTS public.idx_inventory_movements_request_id_unique;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_movements_request_id_product_dest
+  ON public.inventory_movements (request_id, product_id, destination_location)
   WHERE request_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_request_id_dest
