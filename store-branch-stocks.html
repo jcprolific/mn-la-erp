@@ -103,7 +103,7 @@
     </aside>
     <main class="store-main">
       <h1 class="sd-page-title">Branch Stocks</h1>
-      <p class="sd-page-sub" id="pageSubtitle">Inventory across all branches. Store associates can adjust quantity only at their assigned branch.</p>
+      <p class="sd-page-sub" id="pageSubtitle">Inventory across all branches. Owner and admin can edit or delete any branch; store associates only at their assigned branch.</p>
       <div id="branchFilterBar" class="sd-form-group" style="display:none; margin-bottom:12px;">
         <span id="branchFilterLabel" style="font-size:.9rem; color:var(--text-secondary);"></span>
         <a href="#" id="showAllBranchesLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4;">Show all branches</a>
@@ -218,7 +218,10 @@
   }
 
   function canWriteForRow(row) {
-    return !!(userProfile && userProfile.role === 'store_associate' && userProfile.location_id && row.location_id && userProfile.location_id === row.location_id);
+    if (!userProfile || !row || row.location_id == null) return false;
+    if (userProfile.role === 'owner' || userProfile.role === 'admin') return true;
+    if (userProfile.role === 'store_associate' && userProfile.location_id) return userProfile.location_id === row.location_id;
+    return false;
   }
 
   function filterRows() {
@@ -322,9 +325,15 @@
       return;
     }
     var reason = (reasonInput && reasonInput.value && reasonInput.value.trim()) || null;
+    var locationId = row.location_id;
+    if (!locationId) {
+      if (window.Auth.toast) window.Auth.toast('Missing branch for this row.', 'error');
+      return;
+    }
     try {
       var res = await window.db.rpc('set_inventory_count', {
         p_product_id: row.product_id,
+        p_location_id: locationId,
         p_counted_quantity: newQty,
         p_reason: reason
       });
@@ -340,18 +349,44 @@
   }
 
   async function confirmDeleteRow(row) {
+    console.log('DELETE ROW DEBUG', row);
+    console.log('DELETE PARAMS', {
+      inventory_id: row.id,
+      product_id: row.product_id,
+      location_id: row.location_id,
+      barcode: row.barcode,
+      name: row.product_name || row.name
+    });
     var msg = 'Remove "' + (row.name || row.barcode || 'this product') + '" from ' + (row.branch_name || 'branch') + '? Quantity will be set to zero (row removed).';
     if (!window.confirm(msg)) return;
-    var locId = row.location_id;
-    if (!window.db || !locId) {
-      if (window.Auth.toast) window.Auth.toast('Cannot delete: missing location.', 'error');
+    if (!window.db || !row.id) {
+      if (window.Auth.toast) window.Auth.toast('Cannot delete: missing inventory row id.', 'error');
       return;
     }
+    // #region agent log
     try {
-      var res = await window.db.from('inventory').delete().eq('product_id', row.product_id).eq('location_id', locId).select();
+      fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ceb2bc'},body:JSON.stringify({sessionId:'ceb2bc',location:'store-branch-stocks.html:confirmDeleteRow',message:'before delete',data:{role:userProfile&&userProfile.role,profile_location_id:userProfile&&userProfile.location_id,inventory_id:row.id,product_id:row.product_id,location_id:row.location_id,branch_name:row.branch_name},timestamp:Date.now(),hypothesisId:'H1'})}).catch(function(){});
+    } catch (_) {}
+    // #endregion
+    try {
+      var res = await window.db.rpc('delete_inventory_row', {
+        p_inventory_id: row.id
+      });
+      // #region agent log
+      try {
+        var rawData = res && res.data;
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ceb2bc'},body:JSON.stringify({sessionId:'ceb2bc',location:'store-branch-stocks.html:confirmDeleteRow',message:'after delete',data:{res_data:rawData,res_data_type:typeof rawData,res_error:res&&res.error?String(res.error):null},timestamp:Date.now(),hypothesisId:'H4'})}).catch(function(){});
+      } catch (_) {}
+      // #endregion
       if (res.error) throw res.error;
-      if (window.Auth.toast) window.Auth.toast('Item removed from branch stock.', 'success');
-      loadStocks();
+      var deletedCount = res.data != null ? (typeof res.data === 'number' ? res.data : parseInt(res.data, 10)) : 0;
+      if (isNaN(deletedCount)) deletedCount = 0;
+      if (deletedCount > 0) {
+        if (window.Auth.toast) window.Auth.toast('Item removed from branch stock.', 'success');
+        loadStocks();
+      } else {
+        if (window.Auth.toast) window.Auth.toast('No inventory row was deleted.', 'error');
+      }
     } catch (err) {
       if (window.Auth.toast) window.Auth.toast(err.message || 'Failed to remove item.', 'error');
     }
@@ -393,8 +428,9 @@
           var branchName = nameById[associateLocationId] || associateLocationId;
           allRowsFromRpc = byLocData.map(function(row) {
             return {
-              product_id: (row.id != null ? row.id : row.product_id) || null,
-              location_id: associateLocationId,
+              id: row.inventory_id != null ? row.inventory_id : null,
+              product_id: (row.product_id != null ? row.product_id : row.id) || null,
+              location_id: row.location_id != null ? row.location_id : associateLocationId,
               branch_name: branchName || '—',
               barcode: row.barcode != null ? String(row.barcode) : '',
               name: (row.name != null ? String(row.name) : '') || '',
@@ -421,6 +457,7 @@
         if (rpcData && Array.isArray(rpcData)) {
           allRowsFromRpc = rpcData.map(function(row) {
             return {
+              id: row.inventory_id != null ? row.inventory_id : null,
               product_id: row.product_id || null,
               location_id: row.location_id || null,
               branch_name: (row.branch_name != null && row.branch_name !== '') ? row.branch_name : '—',
@@ -435,7 +472,7 @@
         }
       } catch (_) {}
       if (!rpcUsed) {
-        var invRes = await window.db.from('inventory').select('product_id, location_id, quantity, products(barcode, name, size, color), locations(name)').in('location_id', storeIds);
+        var invRes = await window.db.from('inventory').select('id, product_id, location_id, quantity, products(barcode, name, size, color), locations(name)').in('location_id', storeIds);
         if (invRes.error) {
           tbody.innerHTML = '<tr><td colspan="7" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
           return;
@@ -446,6 +483,7 @@
           if (!p || typeof p !== 'object') p = {};
           var locName = (row.locations && row.locations.name) || nameById[row.location_id] || row.location_id;
           return {
+            id: row.id != null ? row.id : null,
             product_id: row.product_id || null,
             location_id: row.location_id || null,
             branch_name: locName || '—',
