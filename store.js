@@ -13,6 +13,7 @@
     const LOW_STOCK_BRANCH = 5;
     const SIZES = ['XS', 'S', 'M', 'L', 'XL'];
 
+    /** @deprecated Mock store names; dashboard now uses real locations from API. Kept for buildStoreInventory fallback only. */
     const STORES = {
         'one-ayala': 'MN+LA™ ONE AYALA',
         'bgc': 'MN+LA™ BGC',
@@ -23,6 +24,8 @@
         'sm-north': 'MN+LA™ SM NORTH EDSA',
         'sm-manila': 'MN+LA™ SM MANILA',
     };
+
+    const STORE_DASHBOARD_LOCATION_KEY = 'store_dashboard_selected_location_id';
 
     /* ────────────────────────────────────────────────────────
        MOCK PRODUCT CATALOGUE
@@ -209,16 +212,27 @@
         const isStoreAssociate = window.Permissions && window.Permissions.isStoreAssociate();
         const locationId = window.Session && window.Session.locationId();
         const storeSelect = document.getElementById('storeSelect');
-        const effectiveLocationId = locationId || (storeSelect && storeSelect.value && storeSelect.value.length > 36 ? storeSelect.value : null);
+        const effectiveLocationId = locationId || (storeSelect && storeSelect.value && storeSelect.value.length > 36 ? storeSelect.value : null) || currentStoreId;
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5a364e'},body:JSON.stringify({sessionId:'5a364e',location:'store.js:loadDashboardMetrics',message:'effectiveLocationId and source',data:{effectiveLocationId: effectiveLocationId || null, fromSession: !!locationId, fromSelect: !!(storeSelect && storeSelect.value), currentStoreId: currentStoreId || null},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
         try {
             if (effectiveLocationId) {
                 const { rows, totalQty, lowStockCount } = await loadBranchInventory(effectiveLocationId);
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5a364e'},body:JSON.stringify({sessionId:'5a364e',location:'store.js:loadBranchInventory result',message:'inventory row count for dashboard',data:{effectiveLocationId, rowCount: (rows && rows.length) || 0, totalQty: totalQty || 0},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+                } catch (_) {}
+                // #endregion
                 storeInventory = branchRowsToStoreInventory(rows);
                 setStat('sdStatUnits', totalQty.toLocaleString());
                 setStat('sdStatLowStock', String(lowStockCount));
                 renderProductGrid();
             }
-            const { data, error } = await window.db.rpc('get_store_dashboard_metrics');
+            const rpcParams = effectiveLocationId ? { p_location_id: effectiveLocationId } : {};
+            const { data, error } = await window.db.rpc('get_store_dashboard_metrics', rpcParams);
             if (error) throw error;
             if (data && !data.error) {
                 const m = data;
@@ -238,6 +252,53 @@
             setStat('sdStatSales', peso(0));
             setStat('sdStatCash', peso(0));
             setStat('sdStatTxn', '0');
+        }
+    }
+
+    /**
+     * Populate store selector from public.locations (type=store) and load real inventory for selected branch.
+     * Owner/admin: can switch store to see any branch's dashboard and real branch stocks.
+     */
+    async function loadStoresAndSelectBranch() {
+        const storeSel = document.getElementById('storeSelect');
+        if (!window.db) return;
+        try {
+            const { data: locations, error } = await window.db.from('locations').select('id, name').eq('type', 'store').order('name');
+            if (error || !locations || !locations.length) {
+                if (storeSel) storeSel.innerHTML = '<option value="">— No stores —</option>';
+                storeInventory = [];
+                renderMetrics();
+                renderProductGrid();
+                return;
+            }
+            if (storeSel) {
+                storeSel.innerHTML = locations.map(loc => `<option value="${loc.id}">${loc.name || loc.id}</option>`).join('');
+            }
+            const savedId = typeof localStorage !== 'undefined' ? localStorage.getItem(STORE_DASHBOARD_LOCATION_KEY) : null;
+            const validSaved = savedId && locations.some(l => l.id === savedId);
+            const locationId = validSaved ? savedId : locations[0].id;
+            currentStoreId = locationId;
+            if (storeSel) storeSel.value = locationId;
+            if (typeof localStorage !== 'undefined') localStorage.setItem(STORE_DASHBOARD_LOCATION_KEY, locationId);
+            // #region agent log
+            try {
+                const loc = locations.find(l => l.id === locationId);
+                fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5a364e'},body:JSON.stringify({sessionId:'5a364e',location:'store.js:loadStoresAndSelectBranch',message:'dashboard store set',data:{locationId, storeName: (loc && loc.name) || null, fromSaved: validSaved},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+            } catch (_) {}
+            // #endregion
+            const titleEl = document.getElementById('storeTitle');
+            const pillLabel = document.getElementById('sdSwitcherName');
+            const loc = locations.find(l => l.id === locationId);
+            const fullName = (loc && loc.name) || locationId;
+            if (titleEl) titleEl.textContent = fullName;
+            if (pillLabel) pillLabel.textContent = fullName.replace(/^MN\+LA™\s*/i, '') || fullName;
+            await loadDashboardMetrics();
+        } catch (e) {
+            console.warn('[Store] loadStoresAndSelectBranch failed:', e);
+            if (storeSel) storeSel.innerHTML = '<option value="">— Error —</option>';
+            storeInventory = [];
+            renderMetrics();
+            renderProductGrid();
         }
     }
 
@@ -431,18 +492,40 @@
     /* ────────────────────────────────────────────────────────
        STORE SWITCH
     ──────────────────────────────────────────────────────── */
+    /** Uses mock data (deprecated). Only for fallback if API unavailable. */
     function switchStore(storeId) {
         currentStoreId = storeId;
         storeInventory = buildStoreInventory(storeId);
         const fullName = STORES[storeId] || (window.Session && window.Session.locationName()) || String(storeId);
         const titleEl = document.getElementById('storeTitle');
         if (titleEl) titleEl.textContent = fullName;
-        // Update the pill label: strip the "MN+LA™ " prefix for compactness
         const shortName = fullName.replace(/^MN\+LA™\s*/i, '');
         const pillLabel = document.getElementById('sdSwitcherName');
         if (pillLabel) pillLabel.textContent = shortName;
         renderMetrics();
         renderProductGrid();
+    }
+
+    /** For owner/admin: refresh dashboard from public.inventory for the currently selected location (UUID in storeSelect). */
+    async function applyStoreSelection() {
+        const storeSel = document.getElementById('storeSelect');
+        if (!storeSel || !storeSel.value) return;
+        const locationId = storeSel.value;
+        if (locationId.length < 36) return;
+        currentStoreId = locationId;
+        if (typeof localStorage !== 'undefined') localStorage.setItem(STORE_DASHBOARD_LOCATION_KEY, locationId);
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5a364e'},body:JSON.stringify({sessionId:'5a364e',location:'store.js:applyStoreSelection',message:'owner changed store',data:{locationId, storeName: (storeSel.options[storeSel.selectedIndex] && storeSel.options[storeSel.selectedIndex].text) || null},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
+        const opt = storeSel.options[storeSel.selectedIndex];
+        const fullName = (opt && opt.text) || locationId;
+        const titleEl = document.getElementById('storeTitle');
+        const pillLabel = document.getElementById('sdSwitcherName');
+        if (titleEl) titleEl.textContent = fullName;
+        if (pillLabel) pillLabel.textContent = fullName.replace(/^MN\+LA™\s*/i, '') || fullName;
+        await loadDashboardMetrics();
     }
 
     /* ────────────────────────────────────────────────────────
@@ -458,19 +541,22 @@
             if (pillLabel) pillLabel.textContent = fullName.replace(/^MN\+LA™\s*/i, '') || fullName;
             loadDashboardMetrics();
         } else {
-            const storeSel = document.getElementById('storeSelect');
-            if (storeSel && storeSel.value) currentStoreId = storeSel.value;
-            switchStore(currentStoreId);
+            loadStoresAndSelectBranch();
         }
 
         // Set today's date in report picker
         const rdEl = document.getElementById('reportDate');
         if (rdEl) rdEl.value = today();
 
-        // ── Store selector (only changeable for non–store-associate; store_associate has single locked option) ──
+        // Store selector: owner/admin can switch branch to see that store's dashboard and real inventory.
         const storeSel = document.getElementById('storeSelect');
         if (storeSel && !storeSel.disabled) {
-            storeSel.addEventListener('change', () => switchStore(storeSel.value));
+            storeSel.addEventListener('change', () => {
+                const val = storeSel.value;
+                if (val && val.length >= 36) {
+                    applyStoreSelection();
+                }
+            });
         }
 
         // ── Search ──

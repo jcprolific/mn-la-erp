@@ -802,6 +802,22 @@
     if (logoutBtn) logoutBtn.addEventListener('click', () => window.Auth.logout());
     if (dropdownLogout) dropdownLogout.addEventListener('click', e => { e.preventDefault(); window.Auth.logout(); });
 
+    function closeDrawer() {
+      document.body.classList.remove('store-drawer-open');
+      const o = $('storeDrawerOverlay');
+      if (o) o.classList.remove('is-open');
+    }
+    function openDrawer() {
+      document.body.classList.add('store-drawer-open');
+      const o = $('storeDrawerOverlay');
+      if (o) o.classList.add('is-open');
+    }
+    const menuBtn = $('storeMenuBtn');
+    const overlay = $('storeDrawerOverlay');
+    if (menuBtn) menuBtn.addEventListener('click', () => { document.body.classList.contains('store-drawer-open') ? closeDrawer() : openDrawer(); });
+    if (overlay) overlay.addEventListener('click', closeDrawer);
+    document.querySelectorAll('.store-sidebar__link').forEach(link => { link.addEventListener('click', closeDrawer); });
+
     loadMetrics();
     loadLedger();
     loadTransferRequests();

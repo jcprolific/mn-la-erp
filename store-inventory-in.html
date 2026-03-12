@@ -327,9 +327,32 @@
       if (formEl) formEl.style.display = 'none';
       return true;
     }
-    if ((profile.role === 'owner' || profile.role === 'admin') && !locId) {
-      if (noMsg) { noMsg.textContent = 'Assign your profile to a store (Staff) to use Inventory In here, or log in as a store associate.'; noMsg.style.display = 'block'; }
-      if (formEl) formEl.style.display = 'none';
+    if (profile.role === 'owner' || profile.role === 'admin') {
+      if (noMsg) noMsg.style.display = 'none';
+      if (formEl) formEl.style.display = 'block';
+      if (window.db) {
+        try {
+          var res = await window.db.from('locations').select('id, name').eq('type', 'store').order('name');
+          if (res.data && res.data.length && res.data[0]) {
+            var savedStoreId = typeof localStorage !== 'undefined' ? localStorage.getItem('store_dashboard_selected_location_id') : null;
+            var validSaved = savedStoreId && res.data.some(function(l) { return l.id === savedStoreId; });
+            if (validSaved) {
+              assignedLocationId = savedStoreId;
+              var chosen = res.data.find(function(l) { return l.id === savedStoreId; });
+              if (branchNameEl) branchNameEl.textContent = chosen ? chosen.name : assignedLocationId;
+            } else {
+              assignedLocationId = res.data[0].id;
+              if (branchNameEl) branchNameEl.textContent = res.data[0].name || assignedLocationId;
+            }
+            if (badge) badge.style.display = 'inline-flex';
+            // #region agent log
+            try {
+              fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5a364e'},body:JSON.stringify({sessionId:'5a364e',location:'store-inventory-in.html:guard owner',message:'Inventory In assignedLocationId',data:{assignedLocationId: assignedLocationId || null, fromSaved: validSaved, savedStoreId: savedStoreId || null},timestamp:Date.now(),hypothesisId:'H1'})}).catch(function(){});
+            } catch (_) {}
+            // #endregion
+          }
+        } catch (_) {}
+      }
       return true;
     }
     if (noMsg) noMsg.style.display = 'none';
@@ -957,7 +980,11 @@
         } else {
           searchResults.innerHTML = products.slice(0, 10).map(function(p) {
             var barcode = (p.barcode != null && p.barcode !== '') ? escapeHtml(p.barcode) : escapeHtml(p.sku || '');
-            return '<div class="sd-search-item" data-id="' + p.id + '" data-name="' + escapeHtml(p.name || '') + '" data-sku="' + escapeHtml(p.sku || '') + '" data-barcode="' + barcode + '" data-size="' + escapeHtml(p.size || '') + '" data-color="' + escapeHtml(p.color || '') + '">' + escapeHtml(p.name || p.sku) + ' <span style="color:var(--text-muted);">' + escapeHtml(p.sku) + '</span></div>';
+            var sizeStr = (p.size != null && String(p.size).trim() !== '') ? String(p.size).trim() : '';
+            var colorStr = (p.color != null && String(p.color).trim() !== '') ? String(p.color).trim() : '';
+            var extra = [sizeStr, colorStr].filter(Boolean).join(' · ');
+            var label = escapeHtml(p.name || p.sku) + (extra ? ' <span style="color:var(--text-muted);">— ' + escapeHtml(extra) + '</span>' : '') + ' <span style="color:var(--text-muted);">' + escapeHtml(p.sku) + '</span>';
+            return '<div class="sd-search-item" data-id="' + p.id + '" data-name="' + escapeHtml(p.name || '') + '" data-sku="' + escapeHtml(p.sku || '') + '" data-barcode="' + barcode + '" data-size="' + escapeHtml(p.size || '') + '" data-color="' + escapeHtml(p.color || '') + '">' + label + '</div>';
           }).join('');
           searchResults.querySelectorAll('.sd-search-item[data-id]').forEach(function(el) {
             el.addEventListener('click', function() {

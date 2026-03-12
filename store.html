@@ -1190,22 +1190,15 @@
     </aside>
     <main class="sd-page store-main">
 
-    <!-- Top bar: back link (shown for owner/admin) + store selector -->
+    <!-- Top bar: back link (owner/admin) + store selector (owner/admin: switch branch; store associate: assigned branch only) -->
     <div class="sd-topbar">
       <a href="index.html" class="sd-back" id="sdBackLink" style="display:none;">
         <span class="material-icons-round">arrow_back</span> Master Dashboard
       </a>
       <div class="sd-store-selector" id="storeSelectWrap">
         <span class="material-icons-round">store</span>
-        <select id="storeSelect">
-          <option value="one-ayala">MN+LA™ ONE AYALA</option>
-          <option value="bgc">MN+LA™ BGC</option>
-          <option value="sm-mega">MN+LA™ SM MEGA MALL</option>
-          <option value="gateway">MN+LA™ ARTISAN CAFE GATEWAY II</option>
-          <option value="ciannat">MN+LA™ CIANNAT COMPLEX</option>
-          <option value="greenhills">MN+LA™ GREENHILLS</option>
-          <option value="sm-north">MN+LA™ SM NORTH EDSA</option>
-          <option value="sm-manila">MN+LA™ SM MANILA</option>
+        <select id="storeSelect" aria-label="Select store to view dashboard">
+          <option value="">Loading…</option>
         </select>
         <span class="material-icons-round" style="font-size:16px;">expand_more</span>
       </div>

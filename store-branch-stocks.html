@@ -103,7 +103,11 @@
     </aside>
     <main class="store-main">
       <h1 class="sd-page-title">Branch Stocks</h1>
-      <p class="sd-page-sub">Inventory at your assigned branch. Tap a product to adjust quantity, or use Edit/Delete on the right.</p>
+      <p class="sd-page-sub" id="pageSubtitle">Inventory across all branches. Store associates can adjust quantity only at their assigned branch.</p>
+      <div id="branchFilterBar" class="sd-form-group" style="display:none; margin-bottom:12px;">
+        <span id="branchFilterLabel" style="font-size:.9rem; color:var(--text-secondary);"></span>
+        <a href="#" id="showAllBranchesLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4;">Show all branches</a>
+      </div>
 
       <div class="sd-toolbar">
         <input type="text" class="sd-search" id="searchInput" placeholder="Search by barcode or product name" />
@@ -117,6 +121,7 @@
         <table class="sd-table">
           <thead>
             <tr>
+              <th>Branch</th>
               <th>Barcode</th>
               <th>Product</th>
               <th>Size</th>
@@ -126,7 +131,7 @@
             </tr>
           </thead>
           <tbody id="stocksBody">
-            <tr><td colspan="6" class="sd-empty">Loading…</td></tr>
+            <tr><td colspan="7" class="sd-empty">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -174,12 +179,21 @@
   var allRows = [];
   var filter = 'all';
   var searchQ = '';
-  var currentLocationId = null;
+  var userProfile = null;
+  var filterByLocationId = null;
+  var filterByStoreName = null;
+  var STORE_DASHBOARD_LOCATION_KEY = 'store_dashboard_selected_location_id';
 
   async function guard() {
     await window.Auth.guard();
     var profile = window.Auth.profile;
-    var allowed = profile && (profile.role === 'store_associate' || profile.role === 'owner' || profile.role === 'admin');
+    var allowed = profile && (
+      profile.role === 'store_associate' ||
+      profile.role === 'owner' ||
+      profile.role === 'admin' ||
+      profile.role === 'warehouse_staff' ||
+      profile.role === 'warehouse'
+    );
     if (!allowed) {
       window.location.replace('index.html');
       return;
@@ -188,6 +202,7 @@
       if (window.Auth.toast) window.Auth.toast('No assigned branch.', 'error');
       return;
     }
+    userProfile = profile;
     document.getElementById('dropdownName').textContent = profile.full_name || 'User';
     document.getElementById('dropdownRole').textContent = (profile.role || '') + (profile.locations && profile.locations.name ? ' • ' + profile.locations.name : '');
     document.getElementById('profileAvatar').textContent = (profile.full_name || 'U').split(' ').map(function(w){ return w[0]; }).join('').toUpperCase().slice(0, 2);
@@ -200,28 +215,36 @@
     return true;
   }
 
+  function canWriteForRow(row) {
+    return !!(userProfile && userProfile.role === 'store_associate' && userProfile.location_id && row.location_id && userProfile.location_id === row.location_id);
+  }
+
   function filterRows() {
+    var base = filterByLocationId ? allRows.filter(function(r) { return (r.location_id || '') === filterByLocationId; }) : allRows;
     var q = searchQ.toLowerCase();
-    var list = allRows.filter(function(r) {
-      var matchSearch = !q || (r.barcode && r.barcode.toLowerCase().indexOf(q) >= 0) || (r.name && r.name.toLowerCase().indexOf(q) >= 0);
+    var list = base.filter(function(r) {
+      var matchSearch = !q || (r.barcode && r.barcode.toLowerCase().indexOf(q) >= 0) || (r.name && r.name.toLowerCase().indexOf(q) >= 0) || (r.branch_name && r.branch_name.toLowerCase().indexOf(q) >= 0);
       var matchFilter = filter === 'all' || (filter === 'low' && r.quantity > 0 && r.quantity <= LOW) || (filter === 'out' && r.quantity === 0);
       return matchSearch && matchFilter;
     });
     var tbody = document.getElementById('stocksBody');
     if (list.length === 0) {
-      var emptyMsg = allRows.length === 0
-        ? 'No products in this branch yet. Add products from Inventory In, then click Refresh.'
+      var emptyMsg = base.length === 0
+        ? (filterByLocationId ? 'No products at this branch yet. Use Inventory In for this store, or click "Show all branches".' : 'No products at any branch yet. Use Inventory In to receive stock, then click Refresh.')
         : 'No items match.';
-      tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">' + emptyMsg + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="sd-empty">' + emptyMsg + '</td></tr>';
       return;
     }
     tbody.innerHTML = list.map(function(r) {
       var qtyClass = r.quantity === 0 ? 'sd-qty-zero' : (r.quantity <= LOW ? 'sd-qty-low' : '');
       var pid = (r.product_id || '').replace(/"/g, '&quot;');
-      var actions = pid
-        ? '<div class="sd-row-actions"><button type="button" class="sd-btn-icon sd-btn-edit" data-action="edit" data-product-id="' + pid + '" aria-label="Adjust quantity"><span class="material-icons-round">edit</span></button><button type="button" class="sd-btn-icon sd-btn-delete" data-action="delete" data-product-id="' + pid + '" aria-label="Remove from branch"><span class="material-icons-round">delete</span></button></div>'
-        : '—';
-      return '<tr class="sd-row-clickable" data-product-id="' + pid + '" role="button" tabindex="0" aria-label="Tap to adjust quantity"><td>' + (r.barcode || '—') + '</td><td>' + (r.name || '—') + '</td><td>' + (r.size || '—') + '</td><td>' + (r.color || '—') + '</td><td class="' + qtyClass + '">' + r.quantity + '</td><td>' + actions + '</td></tr>';
+      var locId = (r.location_id || '').replace(/"/g, '&quot;');
+      var canWrite = canWriteForRow(r);
+      var actions = pid && canWrite
+        ? '<div class="sd-row-actions"><button type="button" class="sd-btn-icon sd-btn-edit" data-action="edit" data-product-id="' + pid + '" data-location-id="' + locId + '" aria-label="Adjust quantity"><span class="material-icons-round">edit</span></button><button type="button" class="sd-btn-icon sd-btn-delete" data-action="delete" data-product-id="' + pid + '" data-location-id="' + locId + '" aria-label="Remove from branch"><span class="material-icons-round">delete</span></button></div>'
+        : (pid ? '—' : '—');
+      var clickable = canWrite && pid ? ' sd-row-clickable' : '';
+      return '<tr class="' + clickable + '" data-product-id="' + pid + '" data-location-id="' + locId + '"' + (canWrite && pid ? ' role="button" tabindex="0" aria-label="Tap to adjust quantity"' : '') + '><td>' + (r.branch_name || '—') + '</td><td>' + (r.barcode || '—') + '</td><td>' + (r.name || '—') + '</td><td>' + (r.size || '—') + '</td><td>' + (r.color || '—') + '</td><td class="' + qtyClass + '">' + r.quantity + '</td><td>' + actions + '</td></tr>';
     }).join('');
     tbody.querySelectorAll('.sd-btn-edit, .sd-btn-delete').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
@@ -235,21 +258,27 @@
     });
   }
 
+  function findRow(productId, locationId) {
+    return allRows.find(function(r) { return (r.product_id || '') === productId && (r.location_id || '') === locationId; });
+  }
+
   function handleRowClick(e) {
     if (e.target.closest && e.target.closest('.sd-row-actions')) return;
     var tr = e.currentTarget;
     var productId = tr.getAttribute('data-product-id');
-    if (!productId) return;
-    var row = allRows.find(function(r) { return (r.product_id || '') === productId; });
+    var locationId = tr.getAttribute('data-location-id');
+    if (!productId || !locationId) return;
+    var row = findRow(productId, locationId);
     if (row) openAdjustModal(row);
   }
 
   function handleRowAction(e) {
     var btn = e.currentTarget;
     var productId = btn.getAttribute('data-product-id');
+    var locationId = btn.getAttribute('data-location-id');
     var action = btn.getAttribute('data-action');
-    if (!productId) return;
-    var row = allRows.find(function(r) { return (r.product_id || '') === productId; });
+    if (!productId || !locationId) return;
+    var row = findRow(productId, locationId);
     if (action === 'edit' && row) openAdjustModal(row);
     if (action === 'delete' && row) confirmDeleteRow(row);
   }
@@ -262,7 +291,7 @@
     var reasonInput = document.getElementById('adjustReasonInput');
     if (!modal || !productEl || !qtyInput) return;
     modal._adjustRow = row;
-    productEl.textContent = (row.name || row.barcode || 'Product') + (row.barcode ? ' · ' + row.barcode : '');
+    productEl.textContent = (row.branch_name ? row.branch_name + ' — ' : '') + (row.name || row.barcode || 'Product') + (row.barcode ? ' · ' + row.barcode : '');
     var currentQty = Math.max(0, parseInt(row.quantity, 10) || 0);
     if (currentQtyEl) currentQtyEl.textContent = currentQty;
     qtyInput.value = currentQty;
@@ -306,14 +335,15 @@
   }
 
   async function confirmDeleteRow(row) {
-    var msg = 'Remove "' + (row.name || row.barcode || 'this product') + '" from branch stock? Quantity will be set to zero (row removed).';
+    var msg = 'Remove "' + (row.name || row.barcode || 'this product') + '" from ' + (row.branch_name || 'branch') + '? Quantity will be set to zero (row removed).';
     if (!window.confirm(msg)) return;
-    if (!window.db || !currentLocationId) {
+    var locId = row.location_id;
+    if (!window.db || !locId) {
       if (window.Auth.toast) window.Auth.toast('Cannot delete: missing location.', 'error');
       return;
     }
     try {
-      var res = await window.db.from('inventory').delete().eq('product_id', row.product_id).eq('location_id', currentLocationId).select();
+      var res = await window.db.from('inventory').delete().eq('product_id', row.product_id).eq('location_id', locId).select();
       if (res.error) throw res.error;
       if (window.Auth.toast) window.Auth.toast('Item removed from branch stock.', 'success');
       loadStocks();
@@ -325,83 +355,76 @@
   async function loadStocks() {
     if (!window.db) return;
     var tbody = document.getElementById('stocksBody');
-    tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">Loading…</td></tr>';
-    var locationId = null;
+    tbody.innerHTML = '<tr><td colspan="7" class="sd-empty">Loading…</td></tr>';
     try {
       var pr = await window.db.rpc('get_my_profile');
-      var prof = (pr && pr.data) ? (Array.isArray(pr.data) ? pr.data[0] : pr.data) : null;
-      locationId = prof && prof.location_id ? prof.location_id : null;
+      userProfile = (pr && pr.data) ? (Array.isArray(pr.data) ? pr.data[0] : pr.data) : userProfile;
     } catch (_) {}
-    currentLocationId = locationId;
-    if (locationId) {
-      var direct = await window.db.from('inventory').select('quantity, product_id, products(barcode, name, size, color, sku)').eq('location_id', locationId);
-      if (!direct.error && direct.data && Array.isArray(direct.data)) {
-        allRows = direct.data.map(function(row) {
-          var p = row.products != null ? row.products : row.product;
-          if (Array.isArray(p)) p = p[0];
-          if (!p || typeof p !== 'object') p = {};
-          return {
-            product_id: row.product_id || null,
-            barcode: p.barcode != null ? p.barcode : '',
-            name: p.name != null ? p.name : '',
-            size: p.size != null ? p.size : '',
-            color: p.color != null ? p.color : '',
-            quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
-          };
-        });
-        filterRows();
-        return;
-      }
-      var invOnly = await window.db.from('inventory').select('product_id, quantity').eq('location_id', locationId);
-      if (!invOnly.error && invOnly.data && Array.isArray(invOnly.data) && invOnly.data.length > 0) {
-        var ids = invOnly.data.map(function(r) { return r.product_id; }).filter(Boolean);
-        var uniq = ids.filter(function(id, i) { return ids.indexOf(id) === i; });
-        var prods = await window.db.from('products').select('id, barcode, name, size, color').in('id', uniq);
-        var prodMap = {};
-        if (!prods.error && prods.data) (prods.data || []).forEach(function(p) { prodMap[p.id] = p; });
-        allRows = invOnly.data.map(function(row) {
-          var p = prodMap[row.product_id] || {};
-          return {
-            product_id: row.product_id || null,
-            barcode: p.barcode != null ? p.barcode : '',
-            name: p.name != null ? p.name : '',
-            size: p.size != null ? p.size : '',
-            color: p.color != null ? p.color : '',
-            quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
-          };
-        });
-        filterRows();
-        return;
-      }
-    }
-    var res = await window.db.rpc('get_store_branch_stocks', locationId ? { p_location_id: locationId } : {});
-    var data = res.data, error = res.error;
-    if (error) {
-      tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
+    var locsRes = await window.db.from('locations').select('id, name').eq('type', 'store').order('name');
+    if (locsRes.error || !locsRes.data || !locsRes.data.length) {
+      allRows = [];
+      filterRows();
       return;
     }
-    if (data && typeof data === 'string') {
-      try { data = JSON.parse(data); } catch (_) {}
+    var storeIds = locsRes.data.map(function(l) { return l.id; });
+    var nameById = {};
+    locsRes.data.forEach(function(l) { nameById[l.id] = l.name || l.id; });
+    var invRes = await window.db.from('inventory').select('product_id, location_id, quantity, products(barcode, name, size, color), locations(name)').in('location_id', storeIds);
+    if (invRes.error) {
+      tbody.innerHTML = '<tr><td colspan="7" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
+      return;
     }
-    if (data && typeof data === 'object' && data !== null && !Array.isArray(data)) {
-      if (Array.isArray(data.data)) data = data.data;
-      else if (typeof Object.values === 'function' && Object.values(data).length > 0 && typeof Object.values(data)[0] === 'object' && Object.values(data)[0] !== null)
-        data = Object.values(data);
-      else data = [data];
+    if (!invRes.data) {
+      allRows = [];
+      filterRows();
+      return;
     }
-    var raw = Array.isArray(data) ? data : (data ? [data] : []);
-    function norm(row) {
-      if (!row || typeof row !== 'object') return { product_id: null, barcode: '', name: '', size: '', color: '', quantity: 0 };
+    allRows = (invRes.data || []).map(function(row) {
+      var p = row.products;
+      if (Array.isArray(p)) p = p[0];
+      if (!p || typeof p !== 'object') p = {};
+      var locName = (row.locations && row.locations.name) || nameById[row.location_id] || row.location_id;
       return {
-        product_id: row.product_id || row.id || null,
-        barcode: row.barcode != null ? row.barcode : '',
-        name: row.name != null ? row.name : '',
-        size: row.size != null ? row.size : '',
-        color: row.color != null ? row.color : '',
+        product_id: row.product_id || null,
+        location_id: row.location_id || null,
+        branch_name: locName || '—',
+        barcode: p.barcode != null ? p.barcode : '',
+        name: p.name != null ? p.name : '',
+        size: p.size != null ? p.size : '',
+        color: p.color != null ? p.color : '',
         quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
       };
+    });
+    var savedId = typeof localStorage !== 'undefined' ? localStorage.getItem(STORE_DASHBOARD_LOCATION_KEY) : null;
+    var validSaved = savedId && storeIds.indexOf(savedId) >= 0;
+    if (userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin') && validSaved) {
+      filterByLocationId = savedId;
+      filterByStoreName = nameById[savedId] || savedId;
+    } else if (userProfile && userProfile.role === 'store_associate' && userProfile.location_id && storeIds.indexOf(userProfile.location_id) >= 0) {
+      filterByLocationId = userProfile.location_id;
+      filterByStoreName = nameById[userProfile.location_id] || userProfile.location_id;
+    } else {
+      filterByLocationId = null;
+      filterByStoreName = null;
     }
-    allRows = raw.map(norm);
+    var bar = document.getElementById('branchFilterBar');
+    var label = document.getElementById('branchFilterLabel');
+    var showAllLink = document.getElementById('showAllBranchesLink');
+    if (filterByLocationId && bar && label) {
+      bar.style.display = 'block';
+      label.textContent = 'Showing: ' + (filterByStoreName || filterByLocationId);
+    } else if (bar) {
+      bar.style.display = 'none';
+    }
+    if (showAllLink) {
+      showAllLink.onclick = function(e) {
+        e.preventDefault();
+        filterByLocationId = null;
+        filterByStoreName = null;
+        if (bar) bar.style.display = 'none';
+        filterRows();
+      };
+    }
     filterRows();
   }
 
