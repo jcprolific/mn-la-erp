@@ -65,6 +65,20 @@
     .sd-adjust-modal-box .sd-btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font-size: .95rem; }
     .sd-btn-secondary { padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: .9rem; }
     .sd-btn-secondary:hover { background: rgba(255,255,255,.05); color: var(--text-primary); }
+    /* Search summary section (All Branch Stocks, when search active) */
+    .sd-search-summary { background: var(--bg-card); border: 1px solid rgba(255,255,255,.06); border-radius: 14px; padding: 20px 24px; }
+    .sd-search-summary__title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; }
+    .sd-search-summary__sub { font-size: .8rem; color: var(--text-muted); margin: 0 0 16px 0; }
+    .sd-search-summary .sd-summary-card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
+    .sd-search-summary .sd-summary-card:last-child { margin-bottom: 0; }
+    .sd-search-summary .sd-summary-card__name { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .sd-search-summary .sd-summary-card__variant { font-size: .8rem; font-weight: 600; color: #7a9fc4; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 12px; }
+    .sd-search-summary .sd-summary-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .sd-search-summary .sd-summary-table th { text-align: left; padding: 8px 0; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,.06); }
+    .sd-search-summary .sd-summary-table td { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .sd-search-summary .sd-summary-table tr:last-child td { border-bottom: none; }
+    .sd-search-summary .sd-summary-table .sd-qty-low { color: #a8935c; font-weight: 600; }
+    .sd-search-summary .sd-summary-table .sd-qty-zero { color: var(--text-muted); }
     /* Mobile: horizontal + vertical scroll for Branch Stocks table */
     @media (max-width: 768px) {
       .sd-table-scroll {
@@ -134,6 +148,12 @@
         <button type="button" class="sd-filter-btn" data-filter="low">Low stock (≤5)</button>
         <button type="button" class="sd-filter-btn" data-filter="out">Out of stock</button>
         <button type="button" class="sd-filter-btn" id="refreshStocksBtn" style="margin-left:auto;">Refresh</button>
+      </div>
+
+      <div id="searchSummarySection" class="sd-search-summary" style="display:none; margin-bottom:20px;">
+        <h2 class="sd-search-summary__title">Stock by branch</h2>
+        <p class="sd-search-summary__sub">Where this item is in stock and how many at each branch.</p>
+        <div id="searchSummaryContent"></div>
       </div>
 
       <div class="sd-table-wrap">
@@ -255,6 +275,43 @@
     return false;
   }
 
+  function groupByVariant(list) {
+    var map = {};
+    list.forEach(function(r) {
+      var key = (r.product_id || '') + '|' + (r.barcode || '') + '|' + (r.size || '') + '|' + (r.color || '');
+      if (!map[key]) {
+        map[key] = { name: r.name || '—', barcode: r.barcode || '', size: r.size || '', color: r.color || '', branches: [] };
+      }
+      map[key].branches.push({ branch_name: r.branch_name || '—', quantity: r.quantity });
+    });
+    var out = [];
+    Object.keys(map).forEach(function(k) {
+      var g = map[k];
+      g.branches.sort(function(a, b) { return (a.branch_name || '').localeCompare(b.branch_name || ''); });
+      out.push(g);
+    });
+    return out;
+  }
+
+  function renderSearchSummarySection(list) {
+    var section = document.getElementById('searchSummarySection');
+    var content = document.getElementById('searchSummaryContent');
+    if (!section || !content) return;
+    if (!list || list.length === 0) {
+      content.innerHTML = '<p class="sd-empty" style="margin:0;padding:24px 0;">No items match your search.</p>';
+      return;
+    }
+    var groups = groupByVariant(list);
+    content.innerHTML = groups.map(function(g) {
+      var variantText = [g.size, g.color].filter(Boolean).join(' · ') || '—';
+      var rows = g.branches.map(function(b) {
+        var qtyClass = b.quantity === 0 ? 'sd-qty-zero' : (b.quantity <= LOW ? 'sd-qty-low' : '');
+        return '<tr><td>' + (b.branch_name || '—') + '</td><td class="' + qtyClass + '">' + b.quantity + '</td></tr>';
+      }).join('');
+      return '<div class="sd-summary-card"><div class="sd-summary-card__name">' + (g.name || '—') + '</div><div class="sd-summary-card__variant">' + variantText + '</div><table class="sd-summary-table"><thead><tr><th>Branch</th><th>Qty</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }).join('');
+  }
+
   function filterRows() {
     var base = filterByLocationId ? allRows.filter(function(r) { return (r.location_id || '') === filterByLocationId; }) : allRows;
     var q = searchQ.toLowerCase();
@@ -266,6 +323,13 @@
     // #region agent log
     try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'10405a'},body:JSON.stringify({sessionId:'10405a',location:'store-branch-stocks.html:filterRows',message:'filterRows result',data:{filterByLocationId:filterByLocationId,baseLength:base.length,listLength:list.length,allRowsLength:allRows.length},timestamp:Date.now(),hypothesisId:'H5'})}).catch(function(){}); } catch(_) {}
     // #endregion
+    var summarySection = document.getElementById('searchSummarySection');
+    if (isViewAllPage && searchQ.trim() !== '') {
+      if (summarySection) summarySection.style.display = '';
+      renderSearchSummarySection(list);
+    } else {
+      if (summarySection) summarySection.style.display = 'none';
+    }
     var tbody = document.getElementById('stocksBody');
     if (list.length === 0) {
       var emptyMsg = base.length === 0
