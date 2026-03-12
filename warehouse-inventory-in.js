@@ -385,7 +385,11 @@
           } else {
             searchResults.innerHTML = products.slice(0, 10).map(function (p) {
               var barcode = (p.barcode != null && p.barcode !== '') ? escapeHtml(p.barcode) : escapeHtml(p.sku || '');
-              return '<div class="sd-search-item" data-id="' + p.id + '" data-name="' + escapeHtml(p.name || '') + '" data-sku="' + escapeHtml(p.sku || '') + '" data-barcode="' + barcode + '" data-size="' + escapeHtml(p.size || '') + '" data-color="' + escapeHtml(p.color || '') + '">' + escapeHtml(p.name || p.sku) + ' <span style="color:var(--text-muted);">' + escapeHtml(p.sku) + '</span></div>';
+              var sizeStr = (p.size != null && String(p.size).trim() !== '') ? String(p.size).trim() : '';
+              var colorStr = (p.color != null && String(p.color).trim() !== '') ? String(p.color).trim() : '';
+              var extra = [sizeStr, colorStr].filter(Boolean).join(' · ');
+              var label = escapeHtml(p.name || p.sku) + (extra ? ' <span style="color:var(--text-muted);">— ' + escapeHtml(extra) + '</span>' : '') + ' <span style="color:var(--text-muted);">' + escapeHtml(p.sku) + '</span>';
+              return '<div class="sd-search-item" data-id="' + p.id + '" data-name="' + escapeHtml(p.name || '') + '" data-sku="' + escapeHtml(p.sku || '') + '" data-barcode="' + barcode + '" data-size="' + escapeHtml(p.size || '') + '" data-color="' + escapeHtml(p.color || '') + '">' + label + '</div>';
             }).join('');
             searchResults.querySelectorAll('.sd-search-item[data-id]').forEach(function (el) {
               el.addEventListener('click', function () {
