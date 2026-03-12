@@ -107,6 +107,7 @@
       <div id="branchFilterBar" class="sd-form-group" style="display:none; margin-bottom:12px;">
         <span id="branchFilterLabel" style="font-size:.9rem; color:var(--text-secondary);"></span>
         <a href="#" id="showAllBranchesLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4;">Show all branches</a>
+        <a href="#" id="showOneBranchLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4; display:none;">Show one branch</a>
       </div>
 
       <div class="sd-toolbar">
@@ -183,6 +184,7 @@
   var filterByLocationId = null;
   var filterByStoreName = null;
   var STORE_DASHBOARD_LOCATION_KEY = 'store_dashboard_selected_location_id';
+  var BRANCH_STOCKS_VIEW_MODE_KEY = 'branch_stocks_view_mode'; // 'all' | 'single'
 
   async function guard() {
     await window.Auth.guard();
@@ -227,6 +229,9 @@
       var matchFilter = filter === 'all' || (filter === 'low' && r.quantity > 0 && r.quantity <= LOW) || (filter === 'out' && r.quantity === 0);
       return matchSearch && matchFilter;
     });
+    // #region agent log
+    try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'10405a'},body:JSON.stringify({sessionId:'10405a',location:'store-branch-stocks.html:filterRows',message:'filterRows result',data:{filterByLocationId:filterByLocationId,baseLength:base.length,listLength:list.length,allRowsLength:allRows.length},timestamp:Date.now(),hypothesisId:'H5'})}).catch(function(){}); } catch(_) {}
+    // #endregion
     var tbody = document.getElementById('stocksBody');
     if (list.length === 0) {
       var emptyMsg = base.length === 0
@@ -369,37 +374,114 @@
     var storeIds = locsRes.data.map(function(l) { return l.id; });
     var nameById = {};
     locsRes.data.forEach(function(l) { nameById[l.id] = l.name || l.id; });
-    var invRes = await window.db.from('inventory').select('product_id, location_id, quantity, products(barcode, name, size, color), locations(name)').in('location_id', storeIds);
-    if (invRes.error) {
-      tbody.innerHTML = '<tr><td colspan="7" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
-      return;
+    var locationNames = locsRes.data.map(function(l) { return l.name || l.id; });
+
+    var allRowsFromRpc = [];
+    var rpcUsed = false;
+    var isStoreAssociate = userProfile && userProfile.role === 'store_associate';
+    var associateLocationId = isStoreAssociate && userProfile.location_id ? userProfile.location_id : null;
+
+    if (isStoreAssociate && associateLocationId && storeIds.indexOf(associateLocationId) >= 0) {
+      // Store associate: single source of truth — only fetch this branch from public.inventory via RPC.
+      // Ensures we never show other branches' rows (e.g. Greenhills shows empty when it has 0 inventory rows).
+      try {
+        var byLocRes = await window.db.rpc('get_branch_stocks_by_location', { p_location_id: associateLocationId });
+        if (byLocRes.error) throw byLocRes.error;
+        var byLocData = byLocRes && byLocRes.data;
+        if (byLocData != null && !Array.isArray(byLocData)) byLocData = [byLocData];
+        if (Array.isArray(byLocData)) {
+          var branchName = nameById[associateLocationId] || associateLocationId;
+          allRowsFromRpc = byLocData.map(function(row) {
+            return {
+              product_id: (row.id != null ? row.id : row.product_id) || null,
+              location_id: associateLocationId,
+              branch_name: branchName || '—',
+              barcode: row.barcode != null ? String(row.barcode) : '',
+              name: (row.name != null ? String(row.name) : '') || '',
+              size: (row.size != null ? String(row.size) : '') || '',
+              color: (row.color != null ? String(row.color) : '') || '',
+              quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
+            };
+          });
+          rpcUsed = true;
+        }
+      } catch (_) {
+        if (window.Auth && window.Auth.toast) window.Auth.toast('Could not load branch stocks.', 'error');
+        allRowsFromRpc = [];
+        rpcUsed = true;
+      }
     }
-    if (!invRes.data) {
-      allRows = [];
-      filterRows();
-      return;
+
+    if (!rpcUsed) {
+      try {
+        var rpcRes = await window.db.rpc('get_all_branch_stocks');
+        if (rpcRes.error) throw rpcRes.error;
+        var rpcData = rpcRes && rpcRes.data;
+        if (rpcData && !Array.isArray(rpcData)) rpcData = [rpcData];
+        if (rpcData && Array.isArray(rpcData)) {
+          allRowsFromRpc = rpcData.map(function(row) {
+            return {
+              product_id: row.product_id || null,
+              location_id: row.location_id || null,
+              branch_name: (row.branch_name != null && row.branch_name !== '') ? row.branch_name : '—',
+              barcode: row.barcode != null ? String(row.barcode) : '',
+              name: row.name != null ? String(row.name) : '',
+              size: row.size != null ? String(row.size) : '',
+              color: row.color != null ? String(row.color) : '',
+              quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
+            };
+          });
+          rpcUsed = true;
+        }
+      } catch (_) {}
+      if (!rpcUsed) {
+        var invRes = await window.db.from('inventory').select('product_id, location_id, quantity, products(barcode, name, size, color), locations(name)').in('location_id', storeIds);
+        if (invRes.error) {
+          tbody.innerHTML = '<tr><td colspan="7" class="sd-empty">Error loading stocks. Click Refresh to retry.</td></tr>';
+          return;
+        }
+        allRowsFromRpc = (invRes.data || []).map(function(row) {
+          var p = row.products;
+          if (Array.isArray(p)) p = p[0];
+          if (!p || typeof p !== 'object') p = {};
+          var locName = (row.locations && row.locations.name) || nameById[row.location_id] || row.location_id;
+          return {
+            product_id: row.product_id || null,
+            location_id: row.location_id || null,
+            branch_name: locName || '—',
+            barcode: p.barcode != null ? p.barcode : '',
+            name: p.name != null ? p.name : '',
+            size: p.size != null ? p.size : '',
+            color: p.color != null ? p.color : '',
+            quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
+          };
+        });
+      }
     }
-    allRows = (invRes.data || []).map(function(row) {
-      var p = row.products;
-      if (Array.isArray(p)) p = p[0];
-      if (!p || typeof p !== 'object') p = {};
-      var locName = (row.locations && row.locations.name) || nameById[row.location_id] || row.location_id;
-      return {
-        product_id: row.product_id || null,
-        location_id: row.location_id || null,
-        branch_name: locName || '—',
-        barcode: p.barcode != null ? p.barcode : '',
-        name: p.name != null ? p.name : '',
-        size: p.size != null ? p.size : '',
-        color: p.color != null ? p.color : '',
-        quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0)
-      };
+    allRows = allRowsFromRpc;
+
+    var countsByBranch = {};
+    allRows.forEach(function(r) {
+      var bn = r.branch_name || '—';
+      countsByBranch[bn] = (countsByBranch[bn] || 0) + 1;
     });
+    var distinctBranchNames = Object.keys(countsByBranch);
     var savedId = typeof localStorage !== 'undefined' ? localStorage.getItem(STORE_DASHBOARD_LOCATION_KEY) : null;
+    var viewMode = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(BRANCH_STOCKS_VIEW_MODE_KEY) : null;
+    var selectedMode = (viewMode === 'all' && userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin')) ? 'all' : 'single';
+    // #region agent log
+    try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'10405a'},body:JSON.stringify({sessionId:'10405a',location:'store-branch-stocks.html:loadStocks',message:'branch stocks read path',data:{mode:rpcUsed?'rpc':'client',role:userProfile&&userProfile.role,selectedMode:selectedMode,storeCount:storeIds.length,locationNames:locationNames,rawRowCount:allRows.length,distinctBranchNames:distinctBranchNames,countsByBranch:countsByBranch},timestamp:Date.now()})}).catch(function(){}); } catch(_) {}
+    // #endregion
     var validSaved = savedId && storeIds.indexOf(savedId) >= 0;
-    if (userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin') && validSaved) {
+    var wantAllBranches = viewMode === 'all' && userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin');
+    if (wantAllBranches) {
+      filterByLocationId = null;
+      filterByStoreName = null;
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(BRANCH_STOCKS_VIEW_MODE_KEY, 'all');
+    } else if (userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin') && validSaved) {
       filterByLocationId = savedId;
       filterByStoreName = nameById[savedId] || savedId;
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(BRANCH_STOCKS_VIEW_MODE_KEY, 'single');
     } else if (userProfile && userProfile.role === 'store_associate' && userProfile.location_id && storeIds.indexOf(userProfile.location_id) >= 0) {
       filterByLocationId = userProfile.location_id;
       filterByStoreName = nameById[userProfile.location_id] || userProfile.location_id;
@@ -407,22 +489,49 @@
       filterByLocationId = null;
       filterByStoreName = null;
     }
+    // #region agent log
+    try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'10405a'},body:JSON.stringify({sessionId:'10405a',location:'store-branch-stocks.html:loadStocks',message:'filterByLocationId set',data:{role:userProfile&&userProfile.role,validSaved:!!validSaved,savedId:savedId,filterByLocationId:filterByLocationId,filterByStoreName:filterByStoreName},timestamp:Date.now(),hypothesisId:'H1'})}).catch(function(){}); } catch(_) {}
+    // #endregion
     var bar = document.getElementById('branchFilterBar');
     var label = document.getElementById('branchFilterLabel');
     var showAllLink = document.getElementById('showAllBranchesLink');
+    var showOneLink = document.getElementById('showOneBranchLink');
     if (filterByLocationId && bar && label) {
       bar.style.display = 'block';
       label.textContent = 'Showing: ' + (filterByStoreName || filterByLocationId);
+      if (showAllLink) showAllLink.style.display = '';
+      if (showOneLink) showOneLink.style.display = 'none';
+    } else if (wantAllBranches && bar && label && userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin')) {
+      bar.style.display = 'block';
+      label.textContent = 'Showing: All branches';
+      if (showAllLink) showAllLink.style.display = 'none';
+      if (showOneLink) showOneLink.style.display = '';
     } else if (bar) {
       bar.style.display = 'none';
     }
     if (showAllLink) {
       showAllLink.onclick = function(e) {
         e.preventDefault();
+        // #region agent log
+        try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'10405a'},body:JSON.stringify({sessionId:'10405a',location:'store-branch-stocks.html:showAllBranches',message:'Show all branches clicked',data:{allRowsLength:allRows.length},timestamp:Date.now(),hypothesisId:'H1'})}).catch(function(){}); } catch(_) {}
+        // #endregion
+        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(BRANCH_STOCKS_VIEW_MODE_KEY, 'all');
         filterByLocationId = null;
         filterByStoreName = null;
-        if (bar) bar.style.display = 'none';
+        if (bar) {
+          bar.style.display = 'block';
+          if (label) label.textContent = 'Showing: All branches';
+          if (showAllLink) showAllLink.style.display = 'none';
+          if (showOneLink) showOneLink.style.display = '';
+        }
         filterRows();
+      };
+    }
+    if (showOneLink) {
+      showOneLink.onclick = function(e) {
+        e.preventDefault();
+        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(BRANCH_STOCKS_VIEW_MODE_KEY, 'single');
+        loadStocks();
       };
     }
     filterRows();

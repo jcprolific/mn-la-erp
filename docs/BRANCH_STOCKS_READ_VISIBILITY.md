@@ -2,6 +2,26 @@
 
 ---
 
+## Greenhills fix: store-associate single source of truth (2025-03)
+
+**Problem:** For a branch with 0 rows in `public.inventory` and 0 in `public.inventory_movements` (e.g. Greenhills), the store-associate Branch Stocks page could still show many rows.
+
+**Root cause:** The page used a single path for all roles: call `get_all_branch_stocks()` (returns all branches’ inventory), then filter client-side by `filterByLocationId`. If the RPC failed (or was not deployed), the fallback was `.from('inventory').select(...).in('location_id', storeIds)`, which under RLS returns all branches’ rows. If for any reason `filterByLocationId` was not set for the store associate (e.g. profile timing or `location_id` not in `storeIds`), the UI showed **all branches’ rows** with no filter, so the associate saw “many rows” that were actually other branches’ data.
+
+**Fix:** For **store_associate** only, the page now uses **only** `get_branch_stocks_by_location(p_location_id)` with the associate’s `profile.location_id`. No `get_all_branch_stocks`, no client-side fallback that loads all branches. Rows come solely from `public.inventory` for that one location. If that branch has 0 rows, the table shows empty.
+
+**File/function:** `store-branch-stocks.html` → `loadStocks()`.
+
+**Test (Greenhills empty until real inventory):**
+
+1. Confirm in SQL: `public.inventory` and `public.inventory_movements` have 0 rows for Greenhills `location_id` (e.g. `131ea865-e547-401a-9534-5a911fe6ba0e`).
+2. Log in as a Greenhills store associate. Open Branch Stocks.
+3. **Expected:** Table shows “No products at this branch yet.” (no rows).
+4. Receive stock for Greenhills via Store Inventory In (or warehouse receive to that store). Refresh Branch Stocks.
+5. **Expected:** Rows appear only for Greenhills and match `public.inventory` for that `location_id`. Owner viewing Branch Stocks and selecting Greenhills sees the same rows.
+
+---
+
 ## Debug: Branch Stocks empty for other stores
 
 **Likely cause:** Inventory rows exist only for **one** branch’s `location_id`. The Branch dropdown and `get_branch_stocks_by_location` use the same `locations.id`; the RPC returns rows from `public.inventory` where `inv.location_id = p_location_id`. So if there are no rows for that `location_id`, the table correctly shows “No products in this branch yet.”
@@ -68,7 +88,7 @@ Store branch stocks are now **visible to all authenticated users** (owner, admin
 
 - **Access:** Page now allows `warehouse_staff` and `warehouse` in addition to `store_associate`, `owner`, and `admin`.
 - **Branch selector:** Shown for owner, admin, warehouse_staff, warehouse, **and** store_associate. Store associate’s default selection is their assigned branch; they can switch to other branches to **view only**.
-- **Data loading:** All roles use `get_branch_stocks_by_location(p_location_id)` for the selected branch (single code path). No dependency on profile-based table reads for other branches.
+- **Data loading:** **Store associate** uses only `get_branch_stocks_by_location(profile.location_id)` (single branch, single source of truth from `public.inventory`). **Owner/admin** use `get_all_branch_stocks()` then filter by selected branch; fallback to client `.from('inventory').in('location_id', storeIds)` only when RPC fails. Store associate never sees other branches’ data in the fetch.
 - **Write actions (Adjust / Edit / Delete):** Shown only when `canWriteForCurrentBranch` is true, i.e. when the user is a **store_associate** and the selected branch is **their** `profile.location_id`. Owner, admin, warehouse, and store associates viewing another branch see no adjust/edit/delete (view only).
 - **Subtitle:** Wrapper given `id="pageSubtitle"` for possible future “view only” messaging.
 - **Label:** Branch dropdown label changed from “Store (owner/admin)” to “Branch”.
