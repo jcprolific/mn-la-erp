@@ -1,0 +1,17 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5173",
+  "executionArgs": {
+    "projectName": "MN+LA ERP",
+    "projectPath": "/Users/jcprolific/Documents/MN+LA ERP",
+    "testIds": [],
+    "additionalInstruction": "",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-F8v7bJeLn5_SioMdQ_JTf-KsIFsaxIGdspQFxjGvLh1vy0UiIILAOFrFxOG3xervtCDm-ajW1uuY-oJN_xhyxKFFTHJYrtla1FM-FKV7574ND7aFGBI9aXGyOqpjbQ1O8ts"
+    }
+  },
+  "serverPort": 59829
+}

@@ -87,9 +87,10 @@
             Auth.session = session;
 
             if (session) {
-                // Load profile if not cached yet
+                // Load profile: use cache only if it belongs to the current user (avoid showing wrong location when switching accounts)
                 const cached = _loadCachedProfile();
-                Auth.profile = cached || await fetchProfile(session.user.id);
+                const sameUser = cached && (cached.id === session.user.id);
+                Auth.profile = sameUser ? cached : await fetchProfile(session.user.id);
                 _saveProfile(Auth.profile);
                 _renderUserChip();
             }

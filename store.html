@@ -1195,7 +1195,7 @@
       <a href="index.html" class="sd-back" id="sdBackLink" style="display:none;">
         <span class="material-icons-round">arrow_back</span> Master Dashboard
       </a>
-      <div class="sd-store-selector" id="storeSelectWrap">
+      <div class="sd-store-selector sd-hide-store-location-for-associate" id="storeSelectWrap">
         <span class="material-icons-round">store</span>
         <select id="storeSelect" aria-label="Select store to view dashboard">
           <option value="">Loading…</option>
@@ -1204,8 +1204,8 @@
       </div>
     </div>
 
-    <!-- Page header -->
-    <div class="sd-header">
+    <!-- Page header (hidden for store associate so they don't see store location name) -->
+    <div class="sd-header sd-hide-store-location-for-associate">
       <div class="sd-header-left">
         <div class="sd-header-icon"><span class="material-icons-round">storefront</span></div>
         <div>
@@ -1669,6 +1669,8 @@
         storeSelectWrap.title = 'Your assigned branch (read-only)';
         if (backLink) backLink.style.display = 'none';
         document.querySelectorAll('[data-store-hide]').forEach(function (el) { el.style.display = 'none'; });
+        // Hide store location UI (selector + header) so store associate does not see branch name
+        document.querySelectorAll('.sd-hide-store-location-for-associate').forEach(function (el) { el.style.display = 'none'; });
       } else {
         if (backLink) backLink.style.display = 'inline-flex';
         document.querySelectorAll('.sd-hide-for-store-associate').forEach(function (el) { el.style.display = ''; });

@@ -1,0 +1,1484 @@
+[
+  {
+    "id": "TC001",
+    "title": "Owner/Admin can access Warehouse module from Master Dashboard",
+    "description": "Verifies an authenticated Owner/Admin can see dashboard modules and navigate to the Warehouse dashboard.",
+    "category": "Master Dashboard (Role-based)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/index.html\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Warehouse\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Warehouse\" card/module"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/warehouse.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Owner/Admin can access Inventory overview from Master Dashboard",
+    "description": "Verifies an authenticated Owner/Admin can navigate from the Master Dashboard to the Inventory overview page.",
+    "category": "Master Dashboard (Role-based)",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/index.html\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Inventory\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Inventory\" card/module"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/inventory.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Owner/Admin can access Store Operations from Master Dashboard",
+    "description": "Verifies an authenticated Owner/Admin can navigate from the Master Dashboard to the Store operations dashboard.",
+    "category": "Master Dashboard (Role-based)",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/index.html\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Store\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Store\" or \"Store Operations\" card/module"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Store Associate sees Store Operations entry and can open Store dashboard",
+    "description": "Verifies an authenticated Store Associate can access the Store dashboard from the Master Dashboard (role-appropriate landing options).",
+    "category": "Master Dashboard (Role-based)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/index.html\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Store\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Store\" or \"Store Operations\" card/module"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Store Associate access is prevented for Warehouse module from Master Dashboard",
+    "description": "Verifies a Store Associate cannot access the Warehouse module from the Master Dashboard (access prevented/disabled).",
+    "category": "Master Dashboard (Role-based)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/index.html\""
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Warehouse\" card/module"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/index.html\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Access\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Store Associate: Inventory In opens with assigned store pre-selected",
+    "description": "Verifies a Store Associate can open Inventory In from the Store Dashboard and the form defaults to their assigned store (Store A).",
+    "category": "Store Dashboard",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /store.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Inventory In\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Inventory In\" quick action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Store Associate: Inventory In page shows Store A pre-selected",
+    "description": "Verifies the Inventory In form shows the Store Associate’s assigned store (Store A) as the selected store context.",
+    "category": "Store Dashboard",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /store.html"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Inventory In\" quick action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Store A\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Store\" dropdown is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Owner/Admin: Branch Stocks opens from Store Dashboard",
+    "description": "Verifies an Owner/Admin can navigate from Store Dashboard to Branch Stocks and see the branch stocks view.",
+    "category": "Store Dashboard",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /store.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Branch Stocks\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Branch Stocks\" quick action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-branch-stocks.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Owner/Admin: Branch Stocks shows all branches with quantities",
+    "description": "Verifies the Branch Stocks page shows a multi-branch view with live quantities visible.",
+    "category": "Store Dashboard",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /store.html"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Branch Stocks\" quick action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Branch stocks\" table/list is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Quantity\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Store Associate: Inventory Out navigation from Store Dashboard",
+    "description": "Verifies a Store Associate can open Inventory Out from the Store Dashboard.",
+    "category": "Store Dashboard",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /store.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Inventory Out\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Inventory Out\" quick action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-out.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Store Associate: Sales Today navigation from Store Dashboard",
+    "description": "Verifies a Store Associate can open Sales Today from the Store Dashboard.",
+    "category": "Store Dashboard",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /store.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Sales Today\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sales Today\" quick action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-sales-today.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Store Dashboard: Daily sales report modal can be opened and closed",
+    "description": "Verifies the daily sales report modal opens from the Store Dashboard and can be dismissed.",
+    "category": "Store Dashboard",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /store.html"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Daily Sales\" or \"Open daily sales report\" control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Daily sales report\" modal is visible"
+      },
+      {
+        "type": "action",
+        "description": "Press \"Escape\""
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Store Associate: Attempt to switch to another store is blocked",
+    "description": "Verifies a Store Associate assigned to Store A cannot switch the main dashboard context to Store B and sees a blocked state or access denied messaging.",
+    "category": "Store Dashboard",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /store.html"
+      },
+      {
+        "type": "action",
+        "description": "Click the store selector or branch switch control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Store B\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Store B\""
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Store Associate receives inventory into assigned store and sees updated branch stock",
+    "description": "Verifies a Store Associate can submit an Inventory In transaction for their assigned store and then see the updated quantity in Branch Stocks.",
+    "category": "Store Inventory In",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      },
+      {
+        "type": "action",
+        "description": "Select \"Store A\" from the branch dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Type \"TEST-PRODUCT-001\" into the product/barcode input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"5\" into the quantity field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Success\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Branch Stocks\" navigation link/menu item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-branch-stocks.html\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"TEST-PRODUCT-001\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Store A\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Inventory In requires quantity: blank quantity shows validation error",
+    "description": "Verifies submitting Inventory In without a quantity shows a visible validation error and does not navigate away.",
+    "category": "Store Inventory In",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      },
+      {
+        "type": "action",
+        "description": "Select \"Store A\" from the branch dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Type \"TEST-PRODUCT-002\" into the product/barcode input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"quantity\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"required\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Store Associate cannot post inventory into another branch (Store B)",
+    "description": "Verifies authorization enforcement prevents a Store Associate assigned to Store A from submitting Inventory In to Store B.",
+    "category": "Store Inventory In",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      },
+      {
+        "type": "action",
+        "description": "Click the branch dropdown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Store B\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Store B\" from the branch dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Type \"TEST-PRODUCT-003\" into the product/barcode input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"1\" into the quantity field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"not authorized\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Branch selection is restricted/disabled to assigned store for Store Associate",
+    "description": "Verifies the UI prevents selecting other branches (disabled options or single allowed branch) for a Store Associate assigned to Store A.",
+    "category": "Store Inventory In",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      },
+      {
+        "type": "action",
+        "description": "Click the branch dropdown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Store A\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Store B\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"disabled\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Manual product entry supports leading/trailing spaces (trim) and still submits successfully",
+    "description": "Verifies the product input tolerates accidental spaces and still allows successful submission to the assigned store.",
+    "category": "Store Inventory In",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      },
+      {
+        "type": "action",
+        "description": "Select \"Store A\" from the branch dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Type \"  TEST-PRODUCT-004  \" into the product/barcode input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"2\" into the quantity field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Success\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Quantity field rejects non-numeric input with visible validation error",
+    "description": "Verifies entering a non-numeric quantity prevents submission and shows an on-screen validation message.",
+    "category": "Store Inventory In",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      },
+      {
+        "type": "action",
+        "description": "Select \"Store A\" from the branch dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Type \"TEST-PRODUCT-005\" into the product/barcode input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"five\" into the quantity field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"quantity\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"number\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Inventory In submission with zero quantity is blocked (edge case)",
+    "description": "Verifies quantity of 0 is not accepted (or shows a clear error) to prevent no-op inventory transactions.",
+    "category": "Store Inventory In",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      },
+      {
+        "type": "action",
+        "description": "Select \"Store A\" from the branch dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Type \"TEST-PRODUCT-006\" into the product/barcode input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"0\" into the quantity field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"quantity\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"must be\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/store-inventory-in.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Warehouse staff receives inventory and verifies stock update in Warehouse Stocks",
+    "description": "Verifies a warehouse user can submit an inventory receive and then see updated quantities in the warehouse stocks view.",
+    "category": "Warehouse Inventory In",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/warehouse\""
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link or menu item for \"Inventory In\" (Warehouse)"
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "Submit a receive and confirm success message appears",
+    "description": "Verifies submitting a valid warehouse inventory receive shows a visible success confirmation on the same page.",
+    "category": "Warehouse Inventory In",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link or menu item for \"Inventory In\" (Warehouse)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/warehouse-inventory-in.html\""
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid product selection/name into the product field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Type \"5\" into the quantity field for the first line item"
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "After valid receive submission, user can navigate to Warehouse Stocks page",
+    "description": "Verifies the user can proceed from Inventory In to Warehouse Stocks after a receive, confirming the workflow continues without blockage.",
+    "category": "Warehouse Inventory In",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link or menu item for \"Inventory In\" (Warehouse)"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid product selection/name into the product field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Type \"1\" into the quantity field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Invalid quantity: non-numeric quantity shows validation error and stays on page",
+    "description": "Verifies entering a non-numeric quantity prevents submission and shows a visible validation error while remaining on the Inventory In page.",
+    "category": "Warehouse Inventory In",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link or menu item for \"Inventory In\" (Warehouse)"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid product selection/name into the product field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Type \"abc\" into the quantity field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      }
+    ]
+  },
+  {
+    "id": "TC025",
+    "title": "Invalid quantity: negative quantity shows validation error and stays on page",
+    "description": "Verifies entering a negative quantity prevents submission and shows a visible validation error while remaining on the Inventory In page.",
+    "category": "Warehouse Inventory In",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link or menu item for \"Inventory In\" (Warehouse)"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid product selection/name into the product field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Type \"-3\" into the quantity field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      }
+    ]
+  },
+  {
+    "id": "TC026",
+    "title": "Validation: empty quantity shows error and prevents receive",
+    "description": "Verifies leaving quantity blank prevents submission and displays a visible validation error.",
+    "category": "Warehouse Inventory In",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link or menu item for \"Inventory In\" (Warehouse)"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid product selection/name into the product field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Click the quantity field for the first line item"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Submit\" or \"Receive\" button"
+      }
+    ]
+  },
+  {
+    "id": "TC027",
+    "title": "Unauthorized role cannot access Warehouse Inventory In (access denied or redirected)",
+    "description": "Verifies a user without warehouse permission is blocked from the receive form via access denied messaging or redirect to a permitted warehouse page.",
+    "category": "Warehouse Inventory In",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" or \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /warehouse-inventory-in.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Access denied\" or \"Unauthorized\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/warehouse.html\""
+      }
+    ]
+  },
+  {
+    "id": "TC028",
+    "title": "Inventory Overview loads after login and shows inventory by location",
+    "description": "Verifies an authenticated user can reach Inventory Overview and see location-based inventory information.",
+    "category": "Inventory Overview",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Email\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the \"Email\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Password\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Sign in\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /inventory.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify page title contains \"Inventory\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Location\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC029",
+    "title": "View inventory by location using location selector/tabs",
+    "description": "Verifies the user can change the viewed location and the inventory view updates accordingly.",
+    "category": "Inventory Overview",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the \"Email\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Password\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Sign in\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /inventory.html"
+      },
+      {
+        "type": "action",
+        "description": "Select a different location from the location dropdown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Location:\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Inventory list\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC030",
+    "title": "Navigate from Inventory Overview to Factory Release",
+    "description": "Verifies the Factory Release link/button from Inventory Overview routes to the Factory Release page and the form is visible.",
+    "category": "Inventory Overview",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the \"Email\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Password\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Sign in\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /inventory.html"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Factory Release\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/factory-release.html\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Factory Release\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC031",
+    "title": "Factory Release page shows an initiatable release form",
+    "description": "Verifies the Factory Release page presents a form and an action to initiate a release is visible.",
+    "category": "Inventory Overview",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the \"Email\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Password\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Sign in\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /factory-release.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify page title contains \"Factory\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Release form\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Initiate Release\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC032",
+    "title": "Navigate from Inventory Overview to Warehouse Dispatch",
+    "description": "Verifies the Warehouse Dispatch link/button from Inventory Overview routes to the dispatch/transfers page and key UI is visible.",
+    "category": "Inventory Overview",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the \"Email\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Password\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Sign in\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /inventory.html"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Warehouse Dispatch\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/warehouse-dispatch.html\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Dispatch\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC033",
+    "title": "Warehouse Dispatch page shows dispatch/transfer form",
+    "description": "Verifies the Warehouse Dispatch page presents a dispatch/transfer form and the user can see inputs to create a dispatch.",
+    "category": "Inventory Overview",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the \"Email\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Password\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Sign in\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /warehouse-dispatch.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify page title contains \"Warehouse\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Transfer\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Dispatch form\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC034",
+    "title": "Inventory Overview page provides visible navigation options to Factory Release and Warehouse Dispatch",
+    "description": "Verifies that Inventory Overview displays clearly visible navigation elements to related workflows.",
+    "category": "Inventory Overview",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.html"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the \"Email\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Password\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Sign in\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /inventory.html"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Factory Release\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Warehouse Dispatch\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Location\" is visible"
+      }
+    ]
+  }
+]

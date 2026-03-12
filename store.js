@@ -257,12 +257,32 @@
 
     /**
      * Populate store selector from public.locations (type=store) and load real inventory for selected branch.
+     * Store associate: always use their assigned location_id and name from Session (never first store in list).
      * Owner/admin: can switch store to see any branch's dashboard and real branch stocks.
      */
     async function loadStoresAndSelectBranch() {
         const storeSel = document.getElementById('storeSelect');
         if (!window.db) return;
         try {
+            // Store associate: use only their assigned location so dashboard shows correct branch (e.g. SM North, not BARBERSHOP)
+            const isStoreAssociate = window.Permissions && window.Permissions.isStoreAssociate();
+            const sessionLocationId = window.Session && window.Session.locationId();
+            if (isStoreAssociate && sessionLocationId) {
+                currentStoreId = sessionLocationId;
+                const fullName = window.Session.locationName() || 'My Branch';
+                if (storeSel) {
+                    storeSel.innerHTML = '<option value="' + sessionLocationId + '">' + (fullName || sessionLocationId) + '</option>';
+                    storeSel.value = sessionLocationId;
+                }
+                const titleEl = document.getElementById('storeTitle');
+                const pillLabel = document.getElementById('sdSwitcherName');
+                if (titleEl) titleEl.textContent = fullName;
+                if (pillLabel) pillLabel.textContent = fullName.replace(/^MN\+LA™\s*/i, '') || fullName;
+                if (typeof localStorage !== 'undefined') localStorage.setItem(STORE_DASHBOARD_LOCATION_KEY, sessionLocationId);
+                await loadDashboardMetrics();
+                return;
+            }
+
             const { data: locations, error } = await window.db.from('locations').select('id, name').eq('type', 'store').order('name');
             if (error || !locations || !locations.length) {
                 if (storeSel) storeSel.innerHTML = '<option value="">— No stores —</option>';

@@ -1,5 +1,10 @@
 {
+  "name": "mn-la-erp",
   "dependencies": {
     "@supabase/supabase-js": "^2.99.0"
+  },
+  "scripts": {
+    "serve": "npx serve . -l 5173",
+    "test:sprite": "npm run serve"
   }
 }
