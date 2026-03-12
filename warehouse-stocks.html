@@ -210,13 +210,15 @@
       tbody.innerHTML = '<tr><td colspan="6" class="sd-empty">' + emptyMsg + '</td></tr>';
       return;
     }
+    console.log('WAREHOUSE ROWS DEBUG', list);
     tbody.innerHTML = list.map(function(r) {
       var qtyClass = r.quantity === 0 ? 'sd-qty-zero' : (r.quantity <= LOW ? 'sd-qty-low' : '');
       var pid = (r.product_id || '').replace(/"/g, '&quot;');
-      var actions = pid
-        ? '<div class="sd-row-actions"><button type="button" class="sd-btn-icon sd-btn-edit" data-action="edit" data-product-id="' + pid + '" aria-label="Adjust quantity"><span class="material-icons-round">edit</span></button><button type="button" class="sd-btn-icon sd-btn-delete" data-action="delete" data-product-id="' + pid + '" aria-label="Remove from warehouse"><span class="material-icons-round">delete</span></button></div>'
+      var invId = (r.id || '').replace(/"/g, '&quot;');
+      var actions = pid && invId
+        ? '<div class="sd-row-actions"><button type="button" class="sd-btn-icon sd-btn-edit" data-action="edit" data-product-id="' + pid + '" data-inventory-id=\"' + invId + '\" aria-label="Adjust quantity"><span class="material-icons-round">edit</span></button><button type="button" class="sd-btn-icon sd-btn-delete" data-action="delete" data-product-id="' + pid + '" data-inventory-id=\"' + invId + '\" aria-label="Remove from warehouse"><span class="material-icons-round">delete</span></button></div>'
         : '—';
-      return '<tr class="sd-row-clickable" data-product-id="' + pid + '" role="button" tabindex="0" aria-label="Tap to adjust quantity"><td>' + (r.barcode || '—') + '</td><td>' + (r.name || '—') + '</td><td>' + (r.size || '—') + '</td><td>' + (r.color || '—') + '</td><td class="' + qtyClass + '">' + r.quantity + '</td><td>' + actions + '</td></tr>';
+      return '<tr class="sd-row-clickable" data-product-id="' + pid + '" data-inventory-id=\"' + invId + '\" role="button" tabindex="0" aria-label="Tap to adjust quantity"><td>' + (r.barcode || '—') + '</td><td>' + (r.name || '—') + '</td><td>' + (r.size || '—') + '</td><td>' + (r.color || '—') + '</td><td class="' + qtyClass + '">' + r.quantity + '</td><td>' + actions + '</td></tr>';
     }).join('');
     console.log('[Warehouse Stocks] rendered row count', list.length);
     tbody.querySelectorAll('.sd-btn-edit, .sd-btn-delete').forEach(function(btn) {
@@ -235,17 +237,19 @@
     if (e.target.closest && e.target.closest('.sd-row-actions')) return;
     var tr = e.currentTarget;
     var productId = tr.getAttribute('data-product-id');
+    var inventoryId = tr.getAttribute('data-inventory-id');
     if (!productId) return;
-    var row = allRows.find(function(r) { return (r.product_id || '') === productId; });
+    var row = allRows.find(function(r) { return (r.product_id || '') === productId && (!inventoryId || (r.id || '') === inventoryId); });
     if (row) openAdjustModal(row);
   }
 
   function handleRowAction(e) {
     var btn = e.currentTarget;
     var productId = btn.getAttribute('data-product-id');
+    var inventoryId = btn.getAttribute('data-inventory-id');
     var action = btn.getAttribute('data-action');
     if (!productId) return;
-    var row = allRows.find(function(r) { return (r.product_id || '') === productId; });
+    var row = allRows.find(function(r) { return (r.product_id || '') === productId && (!inventoryId || (r.id || '') === inventoryId); });
     if (action === 'edit' && row) openAdjustModal(row);
     if (action === 'delete' && row) confirmDeleteRow(row);
   }
@@ -299,15 +303,24 @@
   async function confirmDeleteRow(row) {
     var msg = 'Remove "' + (row.name || row.barcode || 'this product') + '" from warehouse stock? Quantity will be set to zero (row removed).';
     if (!window.confirm(msg)) return;
-    if (!window.db || !currentLocationId) {
-      if (window.Auth.toast) window.Auth.toast('Cannot delete: missing warehouse location.', 'error');
+    if (!window.db || !row.id) {
+      if (window.Auth.toast) window.Auth.toast('Cannot delete: missing inventory row id.', 'error');
       return;
     }
+    console.log('WAREHOUSE DELETE ROW DEBUG', row);
     try {
-      var res = await window.db.from('inventory').delete().eq('product_id', row.product_id).eq('location_id', currentLocationId).select();
+      var res = await window.db.rpc('delete_inventory_row', {
+        p_inventory_id: row.id
+      });
       if (res.error) throw res.error;
-      if (window.Auth.toast) window.Auth.toast('Item removed from warehouse stock.', 'success');
-      loadStocks();
+      var deletedCount = res.data != null ? (typeof res.data === 'number' ? res.data : parseInt(res.data, 10)) : 0;
+      if (isNaN(deletedCount)) deletedCount = 0;
+      if (deletedCount > 0) {
+        if (window.Auth.toast) window.Auth.toast('Item removed from warehouse stock.', 'success');
+        loadStocks();
+      } else {
+        if (window.Auth.toast) window.Auth.toast('No warehouse inventory row was deleted.', 'error');
+      }
     } catch (err) {
       if (window.Auth.toast) window.Auth.toast(err.message || 'Failed to remove item.', 'error');
     }
@@ -335,16 +348,17 @@
       }
       var rows = Array.isArray(data) ? data : (data ? [data] : []);
       console.log('[Warehouse Stocks] RPC rows fetched', rows.length);
-      allRows = rows.map(function(row) {
+      allRows = rows.map(function(item) {
         return {
-          product_id: row.product_id || null,
-          barcode: row.barcode != null ? row.barcode : '',
-          name: row.name != null ? row.name : '',
-          size: row.size != null ? row.size : '',
-          color: row.color != null ? row.color : '',
-          quantity: typeof row.quantity === 'number' ? row.quantity : (parseInt(row.quantity, 10) || 0),
-          updated_at: row.updated_at || null,
-          location_id: row.location_id || null
+          id: item.inventory_id || item.id,
+          product_id: item.product_id || null,
+          location_id: item.location_id || null,
+          barcode: item.barcode != null ? item.barcode : '',
+          name: item.name != null ? item.name : '',
+          size: item.size != null ? item.size : '',
+          color: item.color != null ? item.color : '',
+          quantity: typeof item.quantity === 'number' ? item.quantity : (parseInt(item.quantity, 10) || 0),
+          updated_at: item.updated_at || null
         };
       });
       if (allRows.length > 0 && allRows[0].location_id) currentLocationId = allRows[0].location_id;
