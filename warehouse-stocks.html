@@ -112,17 +112,19 @@
       <nav class="store-sidebar__nav">
         <a href="warehouse.html" class="store-sidebar__link"><span class="material-icons-round">dashboard</span> Dashboard</a>
         <a href="warehouse-inventory-in.html" class="store-sidebar__link"><span class="material-icons-round">input</span> Inventory In</a>
-        <a href="warehouse-stocks.html" class="store-sidebar__link active"><span class="material-icons-round">inventory_2</span> Warehouse Stocks</a>
+        <a href="warehouse-stocks.html" class="store-sidebar__link" id="sidebarLinkWarehouseStocks"><span class="material-icons-round">inventory_2</span> Warehouse Stocks</a>
+        <a href="warehouse-stocks.html#view=all" class="store-sidebar__link" id="sidebarLinkAllBranchStocks"><span class="material-icons-round">inventory_2</span> All Branch Stocks</a>
         <a href="warehouse.html#sectionItemAvailability" class="store-sidebar__link"><span class="material-icons-round">storefront</span> Item Availability</a>
       </nav>
     </aside>
     <main class="store-main">
-      <h1 class="sd-page-title">Warehouse Stocks</h1>
-      <p class="sd-page-sub">Inventory at the warehouse. Tap a product to adjust quantity, or use Edit/Delete on the right.</p>
+      <h1 class="sd-page-title" id="pageTitle">Warehouse Stocks</h1>
+      <p class="sd-page-sub" id="pageSubtitle">Inventory at the warehouse. Tap a product to adjust quantity, or use Edit/Delete on the right.</p>
       <div id="branchFilterBar" class="sd-form-group" style="display:none; margin-bottom:12px;">
         <span id="branchFilterLabel" style="font-size:.9rem; color:var(--text-secondary);"></span>
-        <a href="#" id="showAllBranchesLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4;">Show all branches</a>
+        <a href="warehouse-stocks.html#view=all" id="showAllBranchesLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4;">Show all branches</a>
         <a href="#" id="showOneBranchLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4; display:none;">Show one branch</a>
+        <a href="warehouse-stocks.html" id="goToWarehouseStocksLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4; display:none;">Go to Warehouse Stocks</a>
       </div>
 
       <div class="sd-toolbar">
@@ -202,6 +204,14 @@
   var filterByStoreName = null;
   var userProfile = null;
   var WAREHOUSE_STOCKS_VIEW_MODE_KEY = 'warehouse_stocks_view_mode';
+  function getIsViewAllPage() {
+    if (typeof window === 'undefined') return false;
+    var q = new URLSearchParams(window.location.search).get('view');
+    var h = window.location.hash;
+    return q === 'all' || h === '#view=all' || h === '#all';
+  }
+  var isViewAllPage = getIsViewAllPage();
+  if (isViewAllPage && typeof sessionStorage !== 'undefined') sessionStorage.setItem(WAREHOUSE_STOCKS_VIEW_MODE_KEY, 'all');
 
   async function guard() {
     await window.Auth.guard();
@@ -372,8 +382,7 @@
     if (!window.db) return;
     var tbody = document.getElementById('stocksBody');
     tbody.innerHTML = '<tr><td colspan="7" class="sd-empty">Loading…</td></tr>';
-    var viewMode = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(WAREHOUSE_STOCKS_VIEW_MODE_KEY) : null;
-    var wantAllBranches = viewMode === 'all' && userProfile && (userProfile.role === 'warehouse_staff' || userProfile.role === 'warehouse' || userProfile.role === 'owner' || userProfile.role === 'admin');
+    var wantAllBranches = userProfile && (userProfile.role === 'warehouse_staff' || userProfile.role === 'warehouse' || userProfile.role === 'owner' || userProfile.role === 'admin') && isViewAllPage;
 
     try {
       if (wantAllBranches) {
@@ -462,29 +471,27 @@
       var label = document.getElementById('branchFilterLabel');
       var showAllLink = document.getElementById('showAllBranchesLink');
       var showOneLink = document.getElementById('showOneBranchLink');
+      var goToWhLink = document.getElementById('goToWarehouseStocksLink');
       if (wantAllBranches && bar && label) {
         bar.style.display = 'block';
-        label.textContent = 'Showing: All branches';
+        label.textContent = isViewAllPage ? 'Viewing: All branches' : 'Showing: All branches';
         if (showAllLink) showAllLink.style.display = 'none';
-        if (showOneLink) showOneLink.style.display = '';
+        if (showOneLink) showOneLink.style.display = 'none';
+        if (goToWhLink) goToWhLink.style.display = isViewAllPage ? '' : 'none';
       } else if (filterByLocationId && bar && label) {
         bar.style.display = 'block';
         label.textContent = 'Showing: ' + (filterByStoreName || filterByLocationId);
         if (showAllLink) showAllLink.style.display = '';
         if (showOneLink) showOneLink.style.display = 'none';
+        if (goToWhLink) goToWhLink.style.display = 'none';
       } else if (bar) {
         bar.style.display = 'block';
         label.textContent = 'Showing: All branches';
         if (showAllLink) showAllLink.style.display = 'none';
-        if (showOneLink) showOneLink.style.display = '';
+        if (showOneLink) showOneLink.style.display = 'none';
+        if (goToWhLink) goToWhLink.style.display = 'none';
       }
-      if (showAllLink) {
-        showAllLink.onclick = function(e) {
-          e.preventDefault();
-          if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(WAREHOUSE_STOCKS_VIEW_MODE_KEY, 'all');
-          loadStocks();
-        };
-      }
+      /* Show all branches links to All Branch Stocks (warehouse-stocks.html#view=all); no onclick */
       if (showOneLink) {
         showOneLink.onclick = function(e) {
           e.preventDefault();
@@ -526,7 +533,24 @@
   });
 
   guard().then(function(ok) {
-    if (ok) loadStocks();
+    if (ok) {
+      if (isViewAllPage) {
+        document.title = 'All Branch Stocks — Warehouse | MN+LA ERP';
+        var pt = document.getElementById('pageTitle');
+        if (pt) pt.textContent = 'All Branch Stocks';
+        var st = document.getElementById('pageSubtitle');
+        if (st) st.textContent = 'All inventory across all stores. Tap a product to adjust quantity, or use Edit/Delete on the right.';
+      }
+      var linkWh = document.getElementById('sidebarLinkWarehouseStocks');
+      var linkAll = document.getElementById('sidebarLinkAllBranchStocks');
+      if (linkWh && linkAll) {
+        linkWh.classList.remove('active');
+        linkAll.classList.remove('active');
+        if (isViewAllPage) linkAll.classList.add('active');
+        else linkWh.classList.add('active');
+      }
+      loadStocks();
+    }
   });
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') loadStocks();

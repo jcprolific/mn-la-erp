@@ -113,17 +113,19 @@
         <a href="store.html" class="store-sidebar__link"><span class="material-icons-round">dashboard</span> Dashboard</a>
         <a href="store-inventory-in.html" class="store-sidebar__link"><span class="material-icons-round">input</span> Inventory In</a>
         <a href="store-inventory-out.html" class="store-sidebar__link"><span class="material-icons-round">output</span> Inventory Out</a>
-        <a href="store-branch-stocks.html" class="store-sidebar__link active"><span class="material-icons-round">inventory_2</span> Branch Stocks</a>
+        <a href="store-branch-stocks.html" class="store-sidebar__link" id="sidebarLinkBranchStocks"><span class="material-icons-round">inventory_2</span> Branch Stocks</a>
+        <a href="store-branch-stocks.html#view=all" class="store-sidebar__link" id="sidebarLinkAllBranchStocks"><span class="material-icons-round">inventory_2</span> All Branch Stocks</a>
         <a href="store-sales-today.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
       </nav>
     </aside>
     <main class="store-main">
-      <h1 class="sd-page-title">Branch Stocks</h1>
+      <h1 class="sd-page-title" id="pageTitle">Branch Stocks</h1>
       <p class="sd-page-sub" id="pageSubtitle">Inventory across all branches. Owner and admin can edit or delete any branch; store associates only at their assigned branch.</p>
       <div id="branchFilterBar" class="sd-form-group" style="display:none; margin-bottom:12px;">
         <span id="branchFilterLabel" style="font-size:.9rem; color:var(--text-secondary);"></span>
-        <a href="#" id="showAllBranchesLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4;">Show all branches</a>
+        <a href="store-branch-stocks.html#view=all" id="showAllBranchesLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4;">Show all branches</a>
         <a href="#" id="showOneBranchLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4; display:none;">Show one branch</a>
+        <a href="store-branch-stocks.html" id="goToBranchStocksLink" style="font-size:.85rem; margin-left:8px; color:#7a9fc4; display:none;">Go to Branch Stocks</a>
       </div>
 
       <div class="sd-toolbar">
@@ -203,6 +205,17 @@
   var filterByStoreName = null;
   var STORE_DASHBOARD_LOCATION_KEY = 'store_dashboard_selected_location_id';
   var BRANCH_STOCKS_VIEW_MODE_KEY = 'branch_stocks_view_mode'; // 'all' | 'single'
+  function getIsViewAllPage() {
+    if (typeof window === 'undefined') return false;
+    var q = new URLSearchParams(window.location.search).get('view');
+    var h = window.location.hash;
+    return q === 'all' || h === '#view=all' || h === '#all';
+  }
+  var isViewAllPage = getIsViewAllPage();
+  if (isViewAllPage && typeof sessionStorage !== 'undefined') sessionStorage.setItem(BRANCH_STOCKS_VIEW_MODE_KEY, 'all');
+  // #region agent log
+  try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f5139'},body:JSON.stringify({sessionId:'6f5139',location:'store-branch-stocks.html:init',message:'Page load URL and view=all',data:{href:typeof window!=='undefined'?window.location.href:'',search:typeof window!=='undefined'?window.location.search:'',hash:typeof window!=='undefined'?window.location.hash:'',isViewAllPage:isViewAllPage},timestamp:Date.now(),hypothesisId:'H2'})}).catch(function(){}); } catch(_) {}
+  // #endregion
 
   async function guard() {
     await window.Auth.guard();
@@ -496,7 +509,12 @@
     try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'10405a'},body:JSON.stringify({sessionId:'10405a',location:'store-branch-stocks.html:loadStocks',message:'branch stocks read path',data:{mode:rpcUsed?'rpc':'client',role:userProfile&&userProfile.role,selectedMode:selectedMode,storeCount:storeIds.length,locationNames:locationNames,rawRowCount:allRows.length,distinctBranchNames:distinctBranchNames,countsByBranch:countsByBranch},timestamp:Date.now()})}).catch(function(){}); } catch(_) {}
     // #endregion
     var validSaved = savedId && storeIds.indexOf(savedId) >= 0;
-    var wantAllBranches = viewMode === 'all' && userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin' || userProfile.role === 'store_associate');
+    var wantAllBranches = userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin' || userProfile.role === 'store_associate') && isViewAllPage;
+    var distinctBranches = [];
+    try { var seen = {}; allRows.forEach(function(r){ var b = r.branch_name || '—'; if (!seen[b]) { seen[b] = true; distinctBranches.push(b); } }); } catch(_) {}
+    // #region agent log
+    try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f5139'},body:JSON.stringify({sessionId:'6f5139',location:'store-branch-stocks.html:loadStocks',message:'View mode and filter',data:{viewMode:viewMode,isViewAllPage:isViewAllPage,wantAllBranches:wantAllBranches,filterByLocationId:filterByLocationId,allRowsLength:allRows.length,distinctBranches:distinctBranches,role:userProfile&&userProfile.role},timestamp:Date.now(),hypothesisId:'H4'})}).catch(function(){}); } catch(_) {}
+    // #endregion
     if (wantAllBranches) {
       filterByLocationId = null;
       filterByStoreName = null;
@@ -509,6 +527,10 @@
       filterByLocationId = userProfile.location_id;
       filterByStoreName = nameById[userProfile.location_id] || userProfile.location_id;
       if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(BRANCH_STOCKS_VIEW_MODE_KEY, 'single');
+    } else if (userProfile && (userProfile.role === 'owner' || userProfile.role === 'admin') && storeIds.length) {
+      filterByLocationId = storeIds[0];
+      filterByStoreName = nameById[storeIds[0]] || storeIds[0];
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(BRANCH_STOCKS_VIEW_MODE_KEY, 'single');
     } else {
       filterByLocationId = null;
       filterByStoreName = null;
@@ -520,37 +542,23 @@
     var label = document.getElementById('branchFilterLabel');
     var showAllLink = document.getElementById('showAllBranchesLink');
     var showOneLink = document.getElementById('showOneBranchLink');
+    var goToBranchLink = document.getElementById('goToBranchStocksLink');
     if (filterByLocationId && bar && label) {
       bar.style.display = 'block';
       label.textContent = 'Showing: ' + (filterByStoreName || filterByLocationId);
       if (showAllLink) showAllLink.style.display = '';
       if (showOneLink) showOneLink.style.display = 'none';
+      if (goToBranchLink) goToBranchLink.style.display = 'none';
     } else if (wantAllBranches && bar && label) {
       bar.style.display = 'block';
-      label.textContent = 'Showing: All branches';
+      label.textContent = isViewAllPage ? 'Viewing: All branches' : 'Showing: All branches';
       if (showAllLink) showAllLink.style.display = 'none';
-      if (showOneLink) showOneLink.style.display = '';
+      if (showOneLink) showOneLink.style.display = isViewAllPage ? 'none' : '';
+      if (goToBranchLink) goToBranchLink.style.display = isViewAllPage ? '' : 'none';
     } else if (bar) {
       bar.style.display = 'none';
     }
-    if (showAllLink) {
-      showAllLink.onclick = function(e) {
-        e.preventDefault();
-        // #region agent log
-        try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'10405a'},body:JSON.stringify({sessionId:'10405a',location:'store-branch-stocks.html:showAllBranches',message:'Show all branches clicked',data:{allRowsLength:allRows.length},timestamp:Date.now(),hypothesisId:'H1'})}).catch(function(){}); } catch(_) {}
-        // #endregion
-        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(BRANCH_STOCKS_VIEW_MODE_KEY, 'all');
-        filterByLocationId = null;
-        filterByStoreName = null;
-        if (bar) {
-          bar.style.display = 'block';
-          if (label) label.textContent = 'Showing: All branches';
-          if (showAllLink) showAllLink.style.display = 'none';
-          if (showOneLink) showOneLink.style.display = '';
-        }
-        filterRows();
-      };
-    }
+    /* Show all branches is now a direct link to All Branch Stocks (store-branch-stocks.html#view=all); no onclick */
     if (showOneLink) {
       showOneLink.onclick = function(e) {
         e.preventDefault();
@@ -588,7 +596,24 @@
   });
 
   guard().then(function(ok) {
-    if (ok) loadStocks();
+    if (ok) {
+      if (isViewAllPage) {
+        document.title = 'All Branch Stocks — Store Dashboard | MN+LA ERP';
+        var pt = document.getElementById('pageTitle');
+        if (pt) pt.textContent = 'All Branch Stocks';
+        var st = document.getElementById('pageSubtitle');
+        if (st) st.textContent = 'All inventory across all stores. Owner and admin can edit or delete any branch; store associates only at their assigned branch.';
+      }
+      var linkBranch = document.getElementById('sidebarLinkBranchStocks');
+      var linkAll = document.getElementById('sidebarLinkAllBranchStocks');
+      if (linkBranch && linkAll) {
+        linkBranch.classList.remove('active');
+        linkAll.classList.remove('active');
+        if (isViewAllPage) linkAll.classList.add('active');
+        else linkBranch.classList.add('active');
+      }
+      loadStocks();
+    }
   });
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') loadStocks();
