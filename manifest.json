@@ -1,0 +1,23 @@
+{
+  "name": "MN+LA ERP",
+  "short_name": "MN+LA",
+  "description": "MN+LA Master Access – Operational ERP",
+  "start_url": "index.html",
+  "display": "standalone",
+  "theme_color": "#1e293b",
+  "background_color": "#0f172a",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -65,6 +65,22 @@
     .sd-adjust-modal-box .sd-btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font-size: .95rem; }
     .sd-btn-secondary { padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: .9rem; }
     .sd-btn-secondary:hover { background: rgba(255,255,255,.05); color: var(--text-primary); }
+    /* Mobile: horizontal + vertical scroll for Branch Stocks table */
+    @media (max-width: 768px) {
+      .sd-table-scroll {
+        overflow-x: auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
+        width: 100%;
+        min-width: 0;
+        max-height: min(72vh, 520px);
+      }
+      .sd-table-wrap .sd-table-scroll .sd-table {
+        min-width: 680px;
+        width: max-content;
+      }
+    }
   </style>
 </head>
 <body>
@@ -119,7 +135,8 @@
       </div>
 
       <div class="sd-table-wrap">
-        <table class="sd-table">
+        <div class="sd-table-scroll" role="region" aria-label="Branch stocks table">
+          <table class="sd-table">
           <thead>
             <tr>
               <th>Branch</th>
@@ -135,6 +152,7 @@
             <tr><td colspan="7" class="sd-empty">Loading…</td></tr>
           </tbody>
         </table>
+        </div>
       </div>
     </main>
   </div>
@@ -599,6 +617,47 @@
       link.addEventListener('click', closeDrawer);
     });
   })();
+
+  // #region agent log
+  (function branchStocksScrollDiagnostic() {
+    function log() {
+      var wrap = document.querySelector('.store-main .sd-table-wrap');
+      var main = document.querySelector('.store-main');
+      var table = document.querySelector('.store-main .sd-table');
+      if (!wrap || !main || !table) return;
+      var wrapStyle = window.getComputedStyle(wrap);
+      var mainStyle = window.getComputedStyle(main);
+      var tableStyle = window.getComputedStyle(table);
+      var payload = {
+        sessionId: '320c90',
+        location: 'store-branch-stocks.html:branchStocksScrollDiagnostic',
+        message: 'Branch Stocks table scroll layout',
+        data: {
+          wrapOverflow: wrapStyle.overflow,
+          wrapOverflowX: wrapStyle.overflowX,
+          mainOverflowX: mainStyle.overflowX,
+          tableWidth: tableStyle.width,
+          tableScrollWidth: table.scrollWidth,
+          tableClientWidth: table.clientWidth,
+          wrapClientWidth: wrap.clientWidth,
+          innerWidth: window.innerWidth,
+          hasOverflow: table.scrollWidth > wrap.clientWidth
+        },
+        timestamp: Date.now(),
+        hypothesisId: 'H1'
+      };
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '320c90' },
+          body: JSON.stringify(payload)
+        }).catch(function() {});
+      } catch (e) {}
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function() { setTimeout(log, 1500); });
+    else setTimeout(log, 1500);
+  })();
+  // #endregion
   </script>
 </body>
 </html>
