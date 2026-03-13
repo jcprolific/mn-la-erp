@@ -621,6 +621,7 @@
     });
   }
 
+  var manualProductCreationDisabled = true;
   var barcodeNotFoundWrap = document.getElementById('barcodeNotFoundWrap');
   var btnAddProductManually = document.getElementById('btnAddProductManually');
   var manualProductModal = document.getElementById('manualProductModal');
@@ -667,13 +668,24 @@
   }
 
   function openAddManualWithCurrentBarcode() {
+    if (manualProductCreationDisabled) {
+      if (window.Auth && window.Auth.toast) window.Auth.toast('Manual product creation is disabled. Add products in Shopify and run catalog sync.', 'info');
+      return;
+    }
     if (barcodeInput && barcodeInput.value) lastNotFoundBarcode = (barcodeInput.value || '').trim();
     openManualProductModal();
   }
 
-  if (btnAddProductManually) btnAddProductManually.addEventListener('click', openAddManualWithCurrentBarcode);
+  if (btnAddProductManually) {
+    btnAddProductManually.style.display = 'none';
+    btnAddProductManually.addEventListener('click', openAddManualWithCurrentBarcode);
+  }
   var btnAddManuallyAlways = document.getElementById('btnAddManuallyAlways');
-  if (btnAddManuallyAlways) btnAddManuallyAlways.addEventListener('click', openAddManualWithCurrentBarcode);
+  if (btnAddManuallyAlways) {
+    btnAddManuallyAlways.style.display = 'none';
+    btnAddManuallyAlways.addEventListener('click', openAddManualWithCurrentBarcode);
+  }
+  if (manualProductModal) manualProductModal.style.display = 'none';
   if (manualProductModalClose) manualProductModalClose.addEventListener('click', closeManualProductModal);
   if (manualProductCancel) manualProductCancel.addEventListener('click', closeManualProductModal);
   if (manualProductModal) manualProductModal.addEventListener('click', function(e) { if (e.target === manualProductModal) closeManualProductModal(); });
@@ -695,6 +707,14 @@
   if (manualProductForm) {
     manualProductForm.addEventListener('submit', async function(e) {
       e.preventDefault();
+      if (manualProductCreationDisabled) {
+        var disabledErr = document.getElementById('manualProductFormError');
+        var disabledErrWrap = document.getElementById('manualProductFormErrorWrap');
+        if (disabledErr) disabledErr.textContent = 'Manual product creation is disabled. Create or update products in Shopify, then run catalog sync.';
+        if (disabledErrWrap) disabledErrWrap.style.display = 'block';
+        if (window.Auth && window.Auth.toast) window.Auth.toast('Manual product creation is disabled. Use Shopify catalog sync.', 'error');
+        return;
+      }
       if (manualProductSave && manualProductSave.disabled) {
         var errBox = document.getElementById('manualProductFormError');
         var errBoxWrap = document.getElementById('manualProductFormErrorWrap');

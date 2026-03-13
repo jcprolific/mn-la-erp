@@ -128,21 +128,48 @@
   }
 
   async function findProductByBarcode(bc) {
-    if (!bc || !window.db) return null;
+    if (!bc || !window.db) return { status: 'not_found', product: null, matches: [] };
     var trimmed = (bc || '').trim();
-    var res = await window.db.from('products').select('*').eq('barcode', trimmed).maybeSingle();
-    return (res.data) ? res.data : null;
+    var res = await window.db.rpc('get_product_by_barcode_safe', { p_barcode: trimmed });
+    if (res.error || !res.data || !res.data.length) return { status: 'not_found', product: null, matches: [] };
+    var rows = Array.isArray(res.data) ? res.data : [res.data];
+    var first = rows[0] || {};
+    var count = Number(first.match_count || rows.length || 0);
+    if (count > 1 || rows.length > 1) return { status: 'ambiguous', product: null, matches: rows };
+    if (first.scanner_enabled === false || first.barcode_status === 'duplicate_conflict') {
+      return { status: 'blocked', product: null, matches: rows };
+    }
+    return { status: 'ok', product: first, matches: rows };
+  }
+
+  function pickProductCandidate(matches, barcode) {
+    if (!Array.isArray(matches) || matches.length === 0) return null;
+    var lines = matches.slice(0, 10).map(function (m, i) {
+      return (i + 1) + '. ' + (m.name || 'Unnamed') + ' | ' + (m.sku || '—') + ' | ' + (m.size || '—') + ' | ' + (m.color || '—');
+    });
+    var picked = window.prompt('Barcode ' + barcode + ' matches multiple variants.\nPick variant number:\n' + lines.join('\n'));
+    var idx = parseInt(picked, 10);
+    if (isNaN(idx) || idx < 1 || idx > Math.min(matches.length, 10)) return null;
+    return matches[idx - 1];
   }
 
   async function handleBarcodeScan(barcode) {
     if (!barcode || !window.db) return;
     var trimmed = (barcode || '').trim();
-    var product = await findProductByBarcode(trimmed);
+    var lookup = await findProductByBarcode(trimmed);
+    var product = lookup && lookup.product ? lookup.product : null;
+    if (lookup && lookup.status === 'ambiguous') {
+      if (window.Auth && window.Auth.toast) window.Auth.toast('Duplicate barcode detected. Choose a variant manually.', 'info');
+      product = pickProductCandidate(lookup.matches, trimmed);
+    } else if (lookup && lookup.status === 'blocked') {
+      if (window.Auth && window.Auth.toast) window.Auth.toast('Barcode is blocked due to conflict. Choose a variant manually.', 'error');
+      product = pickProductCandidate(lookup.matches, trimmed);
+    }
     if (!product) {
       lastNotFoundBarcode = trimmed;
       var notFoundWrap = $('barcodeNotFoundWrap');
       if (notFoundWrap) notFoundWrap.style.display = 'block';
-      if (window.Auth && window.Auth.toast) window.Auth.toast('Barcode not found in product master database.', 'error');
+      if (window.Auth && window.Auth.toast) window.Auth.toast('Barcode not resolved in product catalog.', 'error');
       return;
     }
     var notFoundWrap = $('barcodeNotFoundWrap');
@@ -259,6 +286,7 @@
     });
   }
 
+  var manualProductCreationDisabled = true;
   var barcodeNotFoundWrap = $('barcodeNotFoundWrap');
   var btnAddProductManually = $('btnAddProductManually');
   var manualProductModal = $('manualProductModal');
@@ -291,9 +319,20 @@
     if (manualProductModal) { manualProductModal.style.display = 'none'; manualProductModal.setAttribute('aria-hidden', 'true'); }
   }
 
-  if (btnAddProductManually) btnAddProductManually.addEventListener('click', function () { lastNotFoundBarcode = (barcodeInput && barcodeInput.value) ? barcodeInput.value.trim() : lastNotFoundBarcode; openManualProductModal(); });
+  if (btnAddProductManually) {
+    btnAddProductManually.style.display = 'none';
+    btnAddProductManually.addEventListener('click', function () {
+      if (window.Auth && window.Auth.toast) window.Auth.toast('Manual product creation is disabled. Add products in Shopify and run catalog sync.', 'info');
+    });
+  }
   var btnAddManuallyAlways = $('btnAddManuallyAlways');
-  if (btnAddManuallyAlways) btnAddManuallyAlways.addEventListener('click', function () { lastNotFoundBarcode = (barcodeInput && barcodeInput.value) ? barcodeInput.value.trim() : lastNotFoundBarcode; openManualProductModal(); });
+  if (btnAddManuallyAlways) {
+    btnAddManuallyAlways.style.display = 'none';
+    btnAddManuallyAlways.addEventListener('click', function () {
+      if (window.Auth && window.Auth.toast) window.Auth.toast('Manual product creation is disabled. Add products in Shopify and run catalog sync.', 'info');
+    });
+  }
+  if (manualProductModal) manualProductModal.style.display = 'none';
   if (manualProductModalClose) manualProductModalClose.addEventListener('click', closeManualProductModal);
   if (manualProductCancel) manualProductCancel.addEventListener('click', closeManualProductModal);
   if (manualProductModal) manualProductModal.addEventListener('click', function (e) { if (e.target === manualProductModal) closeManualProductModal(); });
@@ -301,6 +340,12 @@
   if (manualProductForm) {
     manualProductForm.addEventListener('submit', async function (e) {
       e.preventDefault();
+      if (manualProductCreationDisabled) {
+        $('manualProductFormError').textContent = 'Manual product creation is disabled. Create or update products in Shopify, then run catalog sync.';
+        $('manualProductFormErrorWrap').style.display = 'block';
+        if (window.Auth && window.Auth.toast) window.Auth.toast('Manual product creation is disabled. Use Shopify catalog sync.', 'error');
+        return;
+      }
       var wh = await getWarehouse();
       if (!wh) {
         $('manualProductFormError').textContent = 'No warehouse configured.';

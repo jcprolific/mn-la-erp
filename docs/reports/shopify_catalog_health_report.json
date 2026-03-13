@@ -1,0 +1,219 @@
+{
+  "generated_at": "2026-03-13T17:40:56.022Z",
+  "source_fetched_at": "2026-03-13T17:40:55.986Z",
+  "store_domain": "mnla.myshopify.com",
+  "api_version": "2025-01",
+  "metrics": {
+    "total_products": 5373,
+    "total_variants": 31512,
+    "active_variants": 8329,
+    "variants_with_barcode": 5243,
+    "variants_without_barcode": 3086,
+    "duplicate_barcode_groups": 100,
+    "duplicate_sku_groups": 108,
+    "duplicate_barcodes_top": [
+      {
+        "value": "144803",
+        "count": 3
+      },
+      {
+        "value": "109902",
+        "count": 2
+      },
+      {
+        "value": "110802",
+        "count": 2
+      },
+      {
+        "value": "110902",
+        "count": 2
+      },
+      {
+        "value": "140002",
+        "count": 2
+      },
+      {
+        "value": "144402",
+        "count": 2
+      },
+      {
+        "value": "144403",
+        "count": 2
+      },
+      {
+        "value": "144802",
+        "count": 2
+      },
+      {
+        "value": "144902",
+        "count": 2
+      },
+      {
+        "value": "144903",
+        "count": 2
+      },
+      {
+        "value": "145002",
+        "count": 2
+      },
+      {
+        "value": "145003",
+        "count": 2
+      },
+      {
+        "value": "176202",
+        "count": 2
+      },
+      {
+        "value": "176203",
+        "count": 2
+      },
+      {
+        "value": "176204",
+        "count": 2
+      },
+      {
+        "value": "176205",
+        "count": 2
+      },
+      {
+        "value": "176206",
+        "count": 2
+      },
+      {
+        "value": "176207",
+        "count": 2
+      },
+      {
+        "value": "178802",
+        "count": 2
+      },
+      {
+        "value": "178803",
+        "count": 2
+      },
+      {
+        "value": "178804",
+        "count": 2
+      },
+      {
+        "value": "178805",
+        "count": 2
+      },
+      {
+        "value": "178806",
+        "count": 2
+      },
+      {
+        "value": "178807",
+        "count": 2
+      },
+      {
+        "value": "178808",
+        "count": 2
+      }
+    ],
+    "duplicate_skus_top": [
+      {
+        "value": "HNTRGRN-OST",
+        "count": 6
+      },
+      {
+        "value": "109902",
+        "count": 2
+      },
+      {
+        "value": "140002",
+        "count": 2
+      },
+      {
+        "value": "144402",
+        "count": 2
+      },
+      {
+        "value": "144403",
+        "count": 2
+      },
+      {
+        "value": "144802",
+        "count": 2
+      },
+      {
+        "value": "144803",
+        "count": 2
+      },
+      {
+        "value": "144902",
+        "count": 2
+      },
+      {
+        "value": "144903",
+        "count": 2
+      },
+      {
+        "value": "145002",
+        "count": 2
+      },
+      {
+        "value": "145003",
+        "count": 2
+      },
+      {
+        "value": "176202",
+        "count": 2
+      },
+      {
+        "value": "176203",
+        "count": 2
+      },
+      {
+        "value": "176204",
+        "count": 2
+      },
+      {
+        "value": "176205",
+        "count": 2
+      },
+      {
+        "value": "176206",
+        "count": 2
+      },
+      {
+        "value": "176207",
+        "count": 2
+      },
+      {
+        "value": "178802",
+        "count": 2
+      },
+      {
+        "value": "178803",
+        "count": 2
+      },
+      {
+        "value": "178804",
+        "count": 2
+      },
+      {
+        "value": "178805",
+        "count": 2
+      },
+      {
+        "value": "178806",
+        "count": 2
+      },
+      {
+        "value": "178807",
+        "count": 2
+      },
+      {
+        "value": "178808",
+        "count": 2
+      },
+      {
+        "value": "178809",
+        "count": 2
+      }
+    ]
+  }
+}

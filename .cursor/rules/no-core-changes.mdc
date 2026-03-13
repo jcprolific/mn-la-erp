@@ -1,0 +1,10 @@
+---
+description: Do not change core/backend or overall functionality unless explicitly requested
+alwaysApply: true
+---
+
+# Preserve Core and Backend
+
+- **Do not change** overall functionality, backend behavior, Supabase schema, RLS, or app architecture unless the user explicitly asks for it.
+- For small or UI-only changes: **minimize scope**. Do not refactor, rename, or restructure working code that is outside the requested change.
+- When in doubt, make the smallest change that satisfies the request and leave the rest of the codebase unchanged.

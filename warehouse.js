@@ -243,12 +243,36 @@
   async function productByBarcode(barcode) {
     if (!window.db || !barcode || !barcode.trim()) return null;
     try {
-      const { data, error } = await window.db.rpc('get_product_by_barcode', { p_barcode: barcode.trim() });
-      if (error || !data || !data.length) return null;
-      return Array.isArray(data) ? data[0] : data;
+      const { data, error } = await window.db.rpc('get_product_by_barcode_safe', {
+        p_barcode: barcode.trim(),
+      });
+      if (error || !data || !data.length) return { status: 'not_found', product: null, matches: [] };
+      const rows = Array.isArray(data) ? data : [data];
+      const first = rows[0] || {};
+      const matchCount = Number(first.match_count || rows.length || 0);
+      if (matchCount > 1 || rows.length > 1) {
+        return { status: 'ambiguous', product: null, matches: rows };
+      }
+      if (first.scanner_enabled === false || first.barcode_status === 'duplicate_conflict') {
+        return { status: 'blocked', product: null, matches: rows };
+      }
+      return { status: 'ok', product: first, matches: rows };
     } catch (e) {
-      return null;
+      return { status: 'error', product: null, matches: [] };
     }
+  }
+
+  function pickProductCandidate(matches, barcode) {
+    if (!Array.isArray(matches) || matches.length === 0) return null;
+    const lines = matches
+      .slice(0, 10)
+      .map((m, i) => `${i + 1}. ${m.name || 'Unnamed'} | ${m.sku || '—'} | ${m.size || '—'} | ${m.color || '—'}`);
+    const choice = window.prompt(
+      `Barcode ${barcode} matches multiple variants.\nPick variant number:\n${lines.join('\n')}`
+    );
+    const idx = Number.parseInt(choice || '', 10);
+    if (!Number.isInteger(idx) || idx < 1 || idx > Math.min(matches.length, 10)) return null;
+    return matches[idx - 1];
   }
 
   async function getWarehouseStock(productId) {
@@ -278,14 +302,22 @@
       const bc = (barcodeIn && barcodeIn.value) ? barcodeIn.value.trim() : '';
       if (!bc) return;
       if (notFound) notFound.classList.remove('open');
-      const product = await productByBarcode(bc);
+      const lookup = await productByBarcode(bc);
+      let product = lookup && lookup.product ? lookup.product : null;
+      if (lookup && lookup.status === 'ambiguous') {
+        toast('Duplicate barcode detected. Choose a variant manually.', 'info');
+        product = pickProductCandidate(lookup.matches, bc);
+      } else if (lookup && lookup.status === 'blocked') {
+        toast('Barcode is blocked due to conflict. Choose a variant manually.', 'error');
+        product = pickProductCandidate(lookup.matches, bc);
+      }
       currentProduct = product;
       if (!product) {
         if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
         if (qtyWrap) qtyWrap.style.display = 'none';
         if (confirmBtn) confirmBtn.disabled = true;
         if (notFound) notFound.classList.add('open');
-        toast('Product not found for barcode', 'error');
+        toast('Product not resolved for barcode', 'error');
         return;
       }
       if (notFound) notFound.classList.remove('open');
@@ -390,14 +422,22 @@
       const bc = (barcodeOut && barcodeOut.value) ? barcodeOut.value.trim() : '';
       if (!bc) return;
       if (notFoundOut) notFoundOut.classList.remove('open');
-      const product = await productByBarcode(bc);
+      const lookup = await productByBarcode(bc);
+      let product = lookup && lookup.product ? lookup.product : null;
+      if (lookup && lookup.status === 'ambiguous') {
+        toast('Duplicate barcode detected. Choose a variant manually.', 'info');
+        product = pickProductCandidate(lookup.matches, bc);
+      } else if (lookup && lookup.status === 'blocked') {
+        toast('Barcode is blocked due to conflict. Choose a variant manually.', 'error');
+        product = pickProductCandidate(lookup.matches, bc);
+      }
       currentProductOut = product;
       if (!product) {
         if (previewOut) { previewOut.style.display = 'none'; previewOut.innerHTML = ''; }
         if (qtyWrapOut) qtyWrapOut.style.display = 'none';
         if (confirmOut) confirmOut.disabled = true;
         if (notFoundOut) notFoundOut.classList.add('open');
-        toast('Product not found for barcode', 'error');
+        toast('Product not resolved for barcode', 'error');
         return;
       }
       if (notFoundOut) notFoundOut.classList.remove('open');

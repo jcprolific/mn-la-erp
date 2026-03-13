@@ -5,6 +5,19 @@
   },
   "scripts": {
     "serve": "npx serve . -l 5173",
-    "test:sprite": "npm run serve"
+    "test:sprite": "npm run serve",
+    "shopify:dry-run": "node scripts/shopify/run-shopify-dry-run.js",
+    "shopify:sync-catalog": "node scripts/shopify/sync-shopify-catalog-to-supabase.js",
+    "shopify:sync-catalog:dry-run": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --dry-run",
+    "shopify:barcode-conflicts": "node scripts/shopify/generate-duplicate-barcode-report.js",
+    "shopify:barcode-cleanup-plan": "node scripts/shopify/generate-barcode-cleanup-plan.js",
+    "shopify:barcode-cleanup-queue": "node scripts/shopify/generate-barcode-cleanup-queue.js",
+    "shopify:barcode-batch1-checklist": "node scripts/shopify/generate-batch1-checklist.js",
+    "shopify:barcode-refresh-status": "node scripts/shopify/refresh-barcode-statuses.js",
+    "shopify:barcode-execute-batch": "node scripts/shopify/execute-barcode-cleanup-batch.js",
+    "shopify:barcode-replacement-template": "node scripts/shopify/generate-replacement-map-template.js",
+    "shopify:catalog-health": "node scripts/shopify/check-shopify-catalog-health.js",
+    "shopify:daily-cycle": "node scripts/shopify/run-daily-catalog-cycle.js",
+    "shopify:validate-cutover": "node scripts/shopify/validate-shopify-cutover.js"
   }
 }
