@@ -28,6 +28,14 @@
     .sd-btn-primary:hover { background: rgba(122,159,196,.3); }
     .sd-btn-primary:disabled { opacity: .6; cursor: not-allowed; }
     .sd-branch-qty { font-size: .85rem; color: var(--text-muted); margin-top: 4px; }
+    .sd-search-results { margin-top: 10px; border: 1px solid rgba(122,159,196,.25); border-radius: 10px; background: rgba(122,159,196,.08); overflow: hidden; }
+    .sd-search-results[hidden] { display: none; }
+    .sd-search-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .sd-search-item:last-child { border-bottom: none; }
+    .sd-search-item__name { font-weight: 600; color: var(--text-primary); font-size: .9rem; }
+    .sd-search-item__meta { font-size: .78rem; color: var(--text-muted); margin-top: 4px; }
+    .sd-search-pick { padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(122,159,196,.35); background: rgba(122,159,196,.14); color: #aac8e8; font-size: .8rem; font-weight: 600; cursor: pointer; }
+    .sd-search-pick:disabled { opacity: .5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -73,6 +81,7 @@
         <div class="sd-form-group">
           <label>Barcode or product name</label>
           <input type="text" id="searchInput" placeholder="Scan barcode or type to search" autocomplete="off" />
+          <div id="searchResults" class="sd-search-results" hidden></div>
         </div>
         <div id="productResult" style="display:none; margin-top:12px;">
           <strong id="outProductName">—</strong>
@@ -134,8 +143,10 @@
   var outQtyGroup = document.getElementById('outQtyGroup');
   var reasonGroup = document.getElementById('reasonGroup');
   var submitGroup = document.getElementById('submitGroup');
+  var searchResults = document.getElementById('searchResults');
   var productId = null;
   var branchQty = 0;
+  var searchDebounce = null;
 
   function isMissingInventoryOutAuditTableError(err) {
     var msg = ((err && err.message) || '').toLowerCase();
@@ -155,34 +166,113 @@
     outBranchQty.textContent = String(nextQty);
   }
 
-  async function searchProduct() {
-    var q = (searchInput.value || '').trim();
-    if (!q || !window.db || !window.Session || !window.Session.locationId()) return;
-    var locId = window.Session.locationId();
-    var { data: byBarcode } = await window.db.from('products').select('id, sku, name').eq('barcode', q).maybeSingle();
-    var product = byBarcode;
-    if (!product) {
-      var { data: byName } = await window.db.from('products').select('id, sku, name').ilike('name', '%' + q + '%').limit(1).maybeSingle();
-      product = byName;
-    }
-    if (!product) {
-      productResult.style.display = 'block';
-      outProductName.textContent = 'No product found.';
-      outBranchQty.textContent = '0';
-      productId = null;
-      outQtyGroup.style.display = reasonGroup.style.display = submitGroup.style.display = 'none';
+  function clearSelectedProduct(showMsg) {
+    productResult.style.display = 'block';
+    outProductName.textContent = showMsg || 'No product found.';
+    outBranchQty.textContent = '0';
+    productId = null;
+    branchQty = 0;
+    outQtyGroup.style.display = reasonGroup.style.display = submitGroup.style.display = 'none';
+  }
+
+  function renderSearchResults(items) {
+    var list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      searchResults.innerHTML = '';
+      searchResults.hidden = true;
       return;
     }
-    productId = product.id;
-    outProductName.textContent = product.name || product.sku;
-    var { data: inv } = await window.db.from('inventory').select('quantity').eq('product_id', product.id).eq('location_id', locId).maybeSingle();
-    branchQty = inv ? inv.quantity : 0;
-    outBranchQty.textContent = branchQty;
+    searchResults.hidden = false;
+    searchResults.innerHTML = list.map(function(item, idx) {
+      var stock = Number(item.branch_qty || 0);
+      var disabled = stock <= 0 ? 'disabled' : '';
+      var pickLabel = stock > 0 ? 'Choose' : 'No stock';
+      return '' +
+        '<div class="sd-search-item">' +
+          '<div>' +
+            '<div class="sd-search-item__name">' + (item.name || item.sku || 'Unnamed product') + '</div>' +
+            '<div class="sd-search-item__meta">SKU: ' + (item.sku || '—') + ' • Branch stock: ' + stock + '</div>' +
+          '</div>' +
+          '<button type="button" class="sd-search-pick" data-pick="' + idx + '" ' + disabled + '>' + pickLabel + '</button>' +
+        '</div>';
+    }).join('');
+    searchResults.querySelectorAll('button[data-pick]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var i = parseInt(btn.getAttribute('data-pick'), 10);
+        var row = list[i];
+        if (!row || Number(row.branch_qty || 0) <= 0) return;
+        productId = row.id;
+        branchQty = Number(row.branch_qty || 0);
+        outProductName.textContent = row.name || row.sku;
+        outBranchQty.textContent = String(branchQty);
+        productResult.style.display = 'block';
+        outQtyGroup.style.display = reasonGroup.style.display = submitGroup.style.display = 'block';
+        searchResults.hidden = true;
+        searchResults.innerHTML = '';
+      });
+    });
+  }
+
+  async function searchProduct() {
+    var q = (searchInput.value || '').trim();
+    if (!window.db || !window.Session || !window.Session.locationId()) return;
+    if (!q) {
+      renderSearchResults([]);
+      clearSelectedProduct('Type barcode or product name.');
+      return;
+    }
+    var locId = window.Session.locationId();
+    var candidates = [];
+    var byBarcodeRes = await window.db.from('products').select('id, sku, name, barcode').eq('barcode', q).limit(8);
+    if (!byBarcodeRes.error && Array.isArray(byBarcodeRes.data) && byBarcodeRes.data.length) {
+      candidates = byBarcodeRes.data;
+    } else {
+      var safeQ = q.replace(/[%_]/g, '');
+      var bySearchRes = await window.db
+        .from('products')
+        .select('id, sku, name, barcode')
+        .or('name.ilike.%' + safeQ + '%,sku.ilike.%' + safeQ + '%,barcode.ilike.%' + safeQ + '%')
+        .limit(8);
+      if (bySearchRes.error) {
+        if (window.Auth.toast) window.Auth.toast(bySearchRes.error.message || 'Search failed', 'error');
+        return;
+      }
+      candidates = Array.isArray(bySearchRes.data) ? bySearchRes.data : [];
+    }
+
+    if (!candidates.length) {
+      renderSearchResults([]);
+      clearSelectedProduct('No product found.');
+      return;
+    }
+
+    var withStock = await Promise.all(candidates.map(async function(p) {
+      var invRes = await window.db.from('inventory').select('quantity').eq('product_id', p.id).eq('location_id', locId).maybeSingle();
+      var qty = (!invRes.error && invRes.data) ? Number(invRes.data.quantity || 0) : 0;
+      return {
+        id: p.id,
+        sku: p.sku || '',
+        name: p.name || '',
+        barcode: p.barcode || '',
+        branch_qty: qty
+      };
+    }));
+    renderSearchResults(withStock);
+
+    var best = withStock.find(function(p) { return Number(p.branch_qty || 0) > 0; }) || withStock[0];
+    productId = best.id;
+    branchQty = Number(best.branch_qty || 0);
+    outProductName.textContent = best.name || best.sku;
+    outBranchQty.textContent = String(branchQty);
     productResult.style.display = 'block';
-    outQtyGroup.style.display = reasonGroup.style.display = submitGroup.style.display = 'block';
+    outQtyGroup.style.display = reasonGroup.style.display = submitGroup.style.display = (branchQty > 0 ? 'block' : 'none');
   }
 
   searchInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); searchProduct(); } });
+  searchInput.addEventListener('input', function() {
+    if (searchDebounce) clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(function() { searchProduct(); }, 280);
+  });
 
   document.getElementById('btnSubmitOut').addEventListener('click', async function() {
     if (!productId || !window.db) return;

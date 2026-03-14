@@ -59,6 +59,56 @@
     .sd-stat-label { font-size: .7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
     .sd-stat-value { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
     .sd-last-ref { margin-top: 10px; font-size: .85rem; color: #34d399; font-weight: 600; }
+    .sd-cart-actions { margin-top:14px; display:flex; gap:10px; justify-content:flex-end; }
+
+    @media (max-width: 768px) {
+      .sd-barcode-input-wrap {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) 48px;
+        gap: 8px;
+      }
+      .sd-barcode-icon-btn,
+      .sd-barcode-search-btn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+        padding: 0;
+      }
+      .sd-barcode-input-wrap .sd-input {
+        min-width: 0;
+        min-height: 48px;
+        font-size: 16px; /* prevents iOS zoom */
+      }
+      .sd-resolver-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .sd-resolver-item .sd-btn {
+        width: 100%;
+        justify-content: center;
+      }
+      .sd-totals {
+        justify-content: space-between;
+        font-size: .88rem;
+      }
+      .sd-cart-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .sd-cart-actions .sd-btn {
+        width: 100%;
+        min-height: 46px;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .sd-cart-actions {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -97,18 +147,18 @@
     </aside>
     <main class="store-main">
       <h1 class="sd-page-title">Sales Today</h1>
-      <p class="sd-page-sub">Scan sold items, build cart, and confirm an atomic sale for your store.</p>
+      <p class="sd-page-sub">Scan barcode or type product name, build cart, and confirm an atomic sale for your store.</p>
 
       <div class="sd-branch-badge" id="branchBadge"><span class="material-icons-round">store</span><span id="branchName">—</span></div>
 
       <div class="sd-card">
         <div class="sd-row">
           <div class="sd-barcode-input-wrap">
-            <button type="button" id="barcodeScannerIcon" class="sd-barcode-icon-btn" aria-label="Focus barcode scanner" title="Focus barcode input">
+            <button type="button" id="barcodeScannerIcon" class="sd-barcode-icon-btn" aria-label="Focus barcode scanner" title="Focus barcode or product search">
               <span class="material-icons-round" style="font-size:30px;">qr_code_scanner</span>
             </button>
-            <input type="text" id="barcodeInput" class="sd-input" placeholder="Scan or type barcode then press Enter" autocomplete="off" />
-            <button type="button" id="barcodeSearchBtn" class="sd-barcode-search-btn" aria-label="Look up barcode" title="Look up barcode">
+            <input type="text" id="barcodeInput" class="sd-input" placeholder="Scan barcode or type product name then press Enter" autocomplete="off" />
+            <button type="button" id="barcodeSearchBtn" class="sd-barcode-search-btn" aria-label="Search barcode or product name" title="Search barcode or product name">
               <span class="material-icons-round">search</span>
             </button>
           </div>
@@ -139,7 +189,7 @@
           <span>Total items: <strong id="totalItems">0</strong></span>
           <span>Total amount: <strong id="totalAmount">₱0.00</strong></span>
         </div>
-        <div style="margin-top:14px; display:flex; gap:10px; justify-content:flex-end;">
+        <div class="sd-cart-actions">
           <button type="button" id="btnClearCart" class="sd-btn sd-btn--danger">Clear Cart</button>
           <button type="button" id="btnConfirmSale" class="sd-btn"><span class="material-icons-round">check_circle</span>Confirm Sale</button>
         </div>
@@ -211,7 +261,7 @@
           } catch (_) {}
           // #endregion
           try {
-            await addByBarcode(nextBarcode);
+            await addByLookupInput(nextBarcode);
           } catch (e) {
             status((e && e.message) ? e.message : 'Barcode lookup failed.', 'error');
             // #region agent log
@@ -243,6 +293,9 @@
     }
     function normalizeBarcode(raw) {
       return String(raw || '').trim();
+    }
+    function escapeILike(value) {
+      return String(value || '').replace(/[%_]/g, '');
     }
     function normalizeMoney(raw) {
       var n = Number(raw);
@@ -539,11 +592,14 @@
       updateCartTotals();
     }
 
-    function renderResolver(rows, barcode) {
+    function renderResolver(rows, lookupValue, resolverMode) {
       var box = document.getElementById('barcodeResolver');
       if (!rows || !rows.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
       box.style.display = 'block';
-      box.innerHTML = '<h4>Multiple/guarded matches for barcode: ' + esc(barcode) + '</h4>' +
+      var heading = resolverMode === 'search'
+        ? 'Multiple matches for: ' + esc(lookupValue)
+        : 'Multiple/guarded matches for barcode: ' + esc(lookupValue);
+      box.innerHTML = '<h4>' + heading + '</h4>' +
         rows.map(function(r, idx) {
           return '<div class="sd-resolver-item">' +
             '<div><div><strong>' + esc(r.name || r.sku || '—') + '</strong></div><div class="sd-mini">' + esc(r.variant_label || r.size || '—') + ' • ' + esc(r.sku || '') + ' • ' + peso(r.resolved_price) + '</div></div>' +
@@ -560,9 +616,57 @@
       });
     }
 
-    async function addByBarcode(raw) {
+    async function addByProductSearch(raw) {
+      var q = normalizeBarcode(raw);
+      if (!q || !window.db) return false;
+      status('Searching products…');
+      renderResolver([], '');
+      var term = escapeILike(q);
+      if (!term) {
+        status('Type a product name, SKU, or barcode.', 'error');
+        return true;
+      }
+      var res = await window.db
+        .from('products')
+        .select('id,sku,name,barcode,size,color,shopify_price,shopify_variant_id,shopify_inventory_item_id,barcode_status,scanner_enabled,created_at')
+        .or('name.ilike.%' + term + '%,sku.ilike.%' + term + '%,barcode.ilike.%' + term + '%')
+        .limit(10);
+      if (res.error) {
+        status(res.error.message || 'Product search failed.', 'error');
+        return true;
+      }
+      var rows = (Array.isArray(res.data) ? res.data : []).map(createLookupRowFromProduct).filter(Boolean);
+      if (!rows.length) {
+        status('No product found for that search.', 'error');
+        return true;
+      }
+      var checks = await Promise.all(rows.map(async function(r) {
+        var pid = r.product_id || r.id || null;
+        if (!pid) return null;
+        var stock = await getBranchStock(pid);
+        if (!Number.isFinite(stock) || stock <= 0) return null;
+        r.product_id = pid;
+        return r;
+      }));
+      var inStockRows = checks.filter(Boolean);
+      if (!inStockRows.length) {
+        status('Matches found, but no available stock in this branch.', 'error');
+        return true;
+      }
+      if (inStockRows.length === 1) {
+        addToCart(inStockRows[0]);
+        status('Added: ' + (inStockRows[0].name || inStockRows[0].sku || 'item'), 'ok');
+        return true;
+      }
+      renderResolver(inStockRows, q, 'search');
+      status('Multiple matches found. Choose an item below.', 'ok');
+      return true;
+    }
+
+    async function addByBarcode(raw, options) {
+      var opts = options || {};
       var barcode = normalizeBarcode(raw);
-      if (!barcode || !window.db) return;
+      if (!barcode || !window.db) return false;
       var startedAt = Date.now();
       // #region agent log
       try {
@@ -636,14 +740,15 @@
           fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H5',location:'store-sales-today-v1.html:addByBarcode:notFound',message:'barcode ended as not found',data:{barcode:barcode,duration_ms:Date.now()-startedAt,source:source&&source.source?source.source:'unknown',assignedLocationId:assignedLocationId||null},timestamp:Date.now()})}).catch(()=>{});
         } catch (_) {}
         // #endregion
+        if (opts.suppressNotFound) return false;
         status('Barcode not found in sellable catalog.', 'error');
-        return;
+        return true;
       }
       var chosen = rows[0];
       var chosenProductId = chosen.product_id || chosen.id || null;
       if (!chosenProductId) {
         status('Barcode match has no product ID.', 'error');
-        return;
+        return true;
       }
       var branchStock = await getBranchStock(chosenProductId);
       // #region agent log
@@ -653,7 +758,7 @@
       // #endregion
       if (!Number.isFinite(branchStock) || branchStock <= 0) {
         status('Product found, but no available stock for this branch.', 'error');
-        return;
+        return true;
       }
       chosen.product_id = chosenProductId;
       chosen.scanner_enabled = true;
@@ -664,6 +769,15 @@
         fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H9',location:'store-sales-today-v1.html:addByBarcode:success',message:'barcode added to cart successfully',data:{barcode:barcode,productId:chosenProductId,cartLinesAfter:cart.length},timestamp:Date.now()})}).catch(()=>{});
       } catch (_) {}
       // #endregion
+      return true;
+    }
+
+    async function addByLookupInput(raw) {
+      var q = normalizeBarcode(raw);
+      if (!q) return;
+      var handledByBarcode = await addByBarcode(q, { suppressNotFound: true });
+      if (handledByBarcode) return;
+      await addByProductSearch(q);
     }
 
     async function confirmSale() {
@@ -745,7 +859,7 @@
       var input = document.getElementById('barcodeInput');
       input.focus();
       input.select();
-      status('Scanner ready. Scan barcode now.');
+      status('Scanner/search ready. Scan barcode or type product name.');
     });
     document.getElementById('barcodeSearchBtn').addEventListener('click', function() {
       var input = document.getElementById('barcodeInput');
