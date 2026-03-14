@@ -232,13 +232,26 @@
                 renderProductGrid();
             }
             const rpcParams = effectiveLocationId ? { p_location_id: effectiveLocationId } : {};
+            let v1SalesLoaded = false;
+            const salesRes = await window.db.rpc('get_store_dashboard_sales_metrics_v1', rpcParams);
+            if (!salesRes.error && salesRes.data && !salesRes.data.error) {
+                const s = salesRes.data;
+                setStat('sdStatSales', peso(s.sales_today ?? 0));
+                setStat('sdStatCash', peso(s.sales_today ?? 0));
+                setStat('sdStatTxn', (s.transactions_today ?? 0).toLocaleString());
+                setStat('sdStatItemsSold', (s.items_sold_today ?? 0).toLocaleString());
+                v1SalesLoaded = true;
+            }
             const { data, error } = await window.db.rpc('get_store_dashboard_metrics', rpcParams);
             if (error) throw error;
             if (data && !data.error) {
                 const m = data;
-                setStat('sdStatSales', peso(m.sales_today ?? 0));
-                setStat('sdStatCash', peso(m.sales_today ?? 0));
-                setStat('sdStatTxn', (m.transactions_today ?? 0).toLocaleString());
+                if (!v1SalesLoaded) {
+                    setStat('sdStatSales', peso(m.sales_today ?? 0));
+                    setStat('sdStatCash', peso(m.sales_today ?? 0));
+                    setStat('sdStatTxn', (m.transactions_today ?? 0).toLocaleString());
+                    setStat('sdStatItemsSold', (m.items_sold_today ?? 0).toLocaleString());
+                }
                 setStat('sdStatPendingOut', String(m.pending_inventory_out ?? 0));
                 if (!effectiveLocationId) {
                     setStat('sdStatUnits', (m.branch_stock_count ?? 0).toLocaleString());
@@ -252,6 +265,7 @@
             setStat('sdStatSales', peso(0));
             setStat('sdStatCash', peso(0));
             setStat('sdStatTxn', '0');
+            setStat('sdStatItemsSold', '0');
         }
     }
 
@@ -331,6 +345,7 @@
         setStat('sdStatUnits', totalUnits(inv).toLocaleString());
         setStat('sdStatSales', peso(0));
         setStat('sdStatTxn', '0');
+        setStat('sdStatItemsSold', '0');
         setStat('sdStatLowStock', String(lowStockCount(inv)));
         setStat('sdStatPendingOut', '0');
         setStat('sdStatCash', peso(0));
@@ -551,7 +566,11 @@
     /* ────────────────────────────────────────────────────────
        INIT
     ──────────────────────────────────────────────────────── */
-    function init() {
+    async function init() {
+        // Prevent branch/dashboard flash: wait until auth + profile are resolved.
+        if (window.Auth && typeof window.Auth.guard === 'function') {
+            await window.Auth.guard();
+        }
         if (window.Permissions && window.Permissions.isStoreAssociate() && window.Session && window.Session.locationId()) {
             currentStoreId = window.Session.locationId();
             const fullName = window.Session.locationName() || 'My Branch';
@@ -751,9 +770,9 @@
 
     // Kick off after DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', function () { void init(); });
     } else {
-        init();
+        void init();
     }
 
 })();

@@ -115,7 +115,7 @@
         <a href="store-inventory-out.html" class="store-sidebar__link"><span class="material-icons-round">output</span> Inventory Out</a>
         <a href="store-branch-stocks.html" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> Branch Stocks</a>
         <a href="store-branch-stocks.html#view=all" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> All Branch Stocks</a>
-        <a href="store-sales-today.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
+        <a href="store-sales-today-v1.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
       </nav>
     </aside>
     <main class="store-main">
@@ -381,7 +381,7 @@
     } else {
       inList.push({
         id: product.id,
-        name: product.name || '—',
+        name: sanitizeProductDisplayName(product.name || '—'),
         sku: product.sku || '—',
         barcode: product.barcode || product.sku || '—',
         size: product.size || '—',
@@ -463,6 +463,15 @@
     return d.innerHTML;
   }
 
+  function sanitizeProductDisplayName(name) {
+    var raw = (name == null ? '' : String(name)).trim();
+    if (!raw) return '';
+    return raw
+      .replace(/\s*[-|]\s*(?:PHP|₱)\s*\d+(?:[.,]\d{1,2})?\s*$/i, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
   async function findProductByBarcode(bc) {
     if (!bc || !window.db) return null;
     var { data: products } = await window.db.from('products').select('id, sku, name, barcode, size, color, created_at').eq('barcode', bc).order('created_at', { ascending: true }).limit(1);
@@ -503,7 +512,7 @@
       if (notFoundWrap) notFoundWrap.style.display = 'none';
       var normalizedProduct = {
         id: product.id,
-        name: product.name || product.sku || 'Unnamed product',
+        name: sanitizeProductDisplayName(product.name || product.sku || 'Unnamed product'),
         sku: product.sku || '',
         barcode: product.barcode || '',
         size: product.size || '',
@@ -511,7 +520,7 @@
       };
       try {
         await addToList(normalizedProduct);
-        if (window.Auth.toast) window.Auth.toast('Added: ' + (product.name || product.sku), 'success');
+        if (window.Auth.toast) window.Auth.toast('Added: ' + sanitizeProductDisplayName(product.name || product.sku), 'success');
       } catch (addErr) {
         console.error('addToList failed:', addErr);
         if (window.Auth.toast) window.Auth.toast('Added to list failed: ' + (addErr && addErr.message), 'error');
@@ -524,8 +533,27 @@
     q = q.trim();
     if (q.length < 2) return [];
     var part = 'name.ilike.%' + q + '%,sku.ilike.%' + q + '%,barcode.ilike.%' + q + '%';
-    var { data } = await window.db.from('products').select('id, sku, name, barcode, size, color').or(part);
-    return data || [];
+    var { data } = await window.db
+      .from('products')
+      .select('id, sku, name, barcode, size, color, catalog_source, shopify_variant_id, shopify_last_synced_at')
+      .or(part);
+    var rows = data || [];
+    rows.sort(function(a, b) {
+      function score(item) {
+        var s = 0;
+        var sku = String((item && item.sku) || '');
+        if (item && (item.shopify_variant_id || String(item.catalog_source || '').toLowerCase() === 'shopify')) s += 100;
+        if (/^legacy-/i.test(sku)) s -= 50;
+        if (item && item.shopify_last_synced_at) s += 10;
+        return s;
+      }
+      var scoreDiff = score(b) - score(a);
+      if (scoreDiff !== 0) return scoreDiff;
+      var ta = Date.parse((a && a.shopify_last_synced_at) || '') || 0;
+      var tb = Date.parse((b && b.shopify_last_synced_at) || '') || 0;
+      return tb - ta;
+    });
+    return rows;
   }
 
   var barcodeInput = document.getElementById('barcodeInput');
@@ -1000,12 +1028,13 @@
           searchResults.innerHTML = '<div class="sd-search-item">No products found.</div>';
         } else {
           searchResults.innerHTML = products.slice(0, 10).map(function(p) {
+            var displayName = sanitizeProductDisplayName(p.name || p.sku || '');
             var barcode = (p.barcode != null && p.barcode !== '') ? escapeHtml(p.barcode) : escapeHtml(p.sku || '');
             var sizeStr = (p.size != null && String(p.size).trim() !== '') ? String(p.size).trim() : '';
             var colorStr = (p.color != null && String(p.color).trim() !== '') ? String(p.color).trim() : '';
             var extra = [sizeStr, colorStr].filter(Boolean).join(' · ');
-            var label = escapeHtml(p.name || p.sku) + (extra ? ' <span style="color:var(--text-muted);">— ' + escapeHtml(extra) + '</span>' : '') + ' <span style="color:var(--text-muted);">' + escapeHtml(p.sku) + '</span>';
-            return '<div class="sd-search-item" data-id="' + p.id + '" data-name="' + escapeHtml(p.name || '') + '" data-sku="' + escapeHtml(p.sku || '') + '" data-barcode="' + barcode + '" data-size="' + escapeHtml(p.size || '') + '" data-color="' + escapeHtml(p.color || '') + '">' + label + '</div>';
+            var label = escapeHtml(displayName || p.sku || '') + (extra ? ' <span style="color:var(--text-muted);">— ' + escapeHtml(extra) + '</span>' : '') + ' <span style="color:var(--text-muted);">' + escapeHtml(p.sku) + '</span>';
+            return '<div class="sd-search-item" data-id="' + p.id + '" data-name="' + escapeHtml(displayName) + '" data-sku="' + escapeHtml(p.sku || '') + '" data-barcode="' + barcode + '" data-size="' + escapeHtml(p.size || '') + '" data-color="' + escapeHtml(p.color || '') + '">' + label + '</div>';
           }).join('');
           searchResults.querySelectorAll('.sd-search-item[data-id]').forEach(function(el) {
             el.addEventListener('click', function() {

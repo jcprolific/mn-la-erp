@@ -13,8 +13,15 @@ function runNodeScript(relativePath, args = []) {
 }
 
 function main() {
+  // Keep daily runs fast by syncing only active products updated recently.
+  const updatedSinceHours = Number.parseFloat(process.env.SHOPIFY_SYNC_UPDATED_SINCE_HOURS || '2');
+  const syncArgs = ['--only-active'];
+  if (Number.isFinite(updatedSinceHours) && updatedSinceHours > 0) {
+    syncArgs.push('--updated-since-hours', String(updatedSinceHours));
+  }
+
   // 1) Pull latest Shopify catalog into ERP.
-  runNodeScript('./sync-shopify-catalog-to-supabase.js');
+  runNodeScript('./sync-shopify-catalog-to-supabase.js', syncArgs);
 
   // 2) Recompute health and duplicate signals for monitoring.
   // This script exits 2 when duplicates exist, which is expected while cleanup is ongoing.

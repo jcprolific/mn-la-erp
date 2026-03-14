@@ -1192,7 +1192,7 @@
         <a href="store-inventory-out.html" class="store-sidebar__link"><span class="material-icons-round">output</span> Inventory Out</a>
         <a href="store-branch-stocks.html" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> Branch Stocks</a>
         <a href="store-branch-stocks.html#view=all" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> All Branch Stocks</a>
-        <a href="store-sales-today.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
+        <a href="store-sales-today-v1.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
       </nav>
     </aside>
     <main class="sd-page store-main">
@@ -1216,7 +1216,7 @@
       <div class="sd-header-left">
         <div class="sd-header-icon"><span class="material-icons-round">storefront</span></div>
         <div>
-          <div class="sd-header-title" id="storeTitle">MN+LA™ ONE AYALA</div>
+          <div class="sd-header-title" id="storeTitle">Store Dashboard</div>
           <div class="sd-header-sub">Store dashboard · Sales, inventory, and staff actions</div>
         </div>
       </div>
@@ -1234,6 +1234,11 @@
         <div class="sd-stat__icon"><span class="material-icons-round">receipt_long</span></div>
         <div class="sd-stat__value" id="sdStatTxn">—</div>
         <div class="sd-stat__label">Transactions Today</div>
+      </div>
+      <div class="sd-stat" style="--sc:rgba(122,159,196,.9); --si:rgba(122,159,196,.1); --sic:#7a9fc4;">
+        <div class="sd-stat__icon"><span class="material-icons-round">shopping_bag</span></div>
+        <div class="sd-stat__value" id="sdStatItemsSold">—</div>
+        <div class="sd-stat__label">Items Sold Today</div>
       </div>
       <a href="store-branch-stocks.html" id="sdStatCardBranchStock" class="sd-stat sd-stat--link" style="--sc:rgba(122,159,196,.9); --si:rgba(122,159,196,.1); --sic:#7a9fc4;" aria-label="Branch Stock Count – go to Branch Stocks page">
         <div class="sd-stat__icon"><span class="material-icons-round">inventory_2</span></div>
@@ -1276,7 +1281,7 @@
       <a href="store-branch-stocks.html" class="sd-action-btn">
         <span class="material-icons-round">inventory_2</span> Branch Stocks
       </a>
-      <a href="store-sales-today.html" class="sd-action-btn">
+      <a href="store-sales-today-v1.html" class="sd-action-btn">
         <span class="material-icons-round">point_of_sale</span> Sales Today
       </a>
       <button class="sd-action-btn sd-hide-for-store-associate" id="btnQuickSale" style="display:none;">

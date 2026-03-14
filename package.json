@@ -9,6 +9,10 @@
     "shopify:dry-run": "node scripts/shopify/run-shopify-dry-run.js",
     "shopify:sync-catalog": "node scripts/shopify/sync-shopify-catalog-to-supabase.js",
     "shopify:sync-catalog:dry-run": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --dry-run",
+    "shopify:sync-catalog:active-only": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --only-active",
+    "shopify:sync-catalog:active-only:dry-run": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --dry-run --only-active",
+    "shopify:sync-catalog:incremental": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --only-active --updated-since-hours 2",
+    "shopify:sync-catalog:incremental:dry-run": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --dry-run --only-active --updated-since-hours 2",
     "shopify:barcode-conflicts": "node scripts/shopify/generate-duplicate-barcode-report.js",
     "shopify:barcode-cleanup-plan": "node scripts/shopify/generate-barcode-cleanup-plan.js",
     "shopify:barcode-cleanup-queue": "node scripts/shopify/generate-barcode-cleanup-queue.js",
@@ -18,6 +22,8 @@
     "shopify:barcode-replacement-template": "node scripts/shopify/generate-replacement-map-template.js",
     "shopify:catalog-health": "node scripts/shopify/check-shopify-catalog-health.js",
     "shopify:daily-cycle": "node scripts/shopify/run-daily-catalog-cycle.js",
-    "shopify:validate-cutover": "node scripts/shopify/validate-shopify-cutover.js"
+    "shopify:validate-cutover": "node scripts/shopify/validate-shopify-cutover.js",
+    "shopify:hard-cutover": "node scripts/shopify/run-shopify-hard-cutover.js",
+    "shopify:stage-cutover-payload": "node scripts/shopify/stage-shopify-cutover-payload.js"
   }
 }

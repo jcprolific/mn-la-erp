@@ -81,10 +81,16 @@ function readSupabaseConfig(options = {}) {
 }
 
 function parseArgs(argv) {
-  const args = { dryRun: false, limit: null };
+  const args = { dryRun: false, limit: null, onlyActive: false, updatedSinceHours: null };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--dry-run') args.dryRun = true;
+    if (token === '--only-active') args.onlyActive = true;
+    if (token === '--updated-since-hours' && argv[i + 1]) {
+      const parsed = Number.parseFloat(argv[i + 1]);
+      if (Number.isFinite(parsed) && parsed > 0) args.updatedSinceHours = parsed;
+      i += 1;
+    }
     if (token === '--limit' && argv[i + 1]) {
       args.limit = Number.parseInt(argv[i + 1], 10);
       i += 1;
@@ -93,12 +99,38 @@ function parseArgs(argv) {
   return args;
 }
 
+function isActiveStatus(value) {
+  return String(value || '').trim().toLowerCase() === 'active';
+}
+
+function buildShopifyProductQuery(args) {
+  const parts = [];
+  if (args.onlyActive) {
+    parts.push('status:active');
+  }
+  if (Number.isFinite(args.updatedSinceHours) && args.updatedSinceHours > 0) {
+    const ms = Math.round(args.updatedSinceHours * 60 * 60 * 1000);
+    const cutoffIso = new Date(Date.now() - ms).toISOString();
+    parts.push(`updated_at:>=${cutoffIso}`);
+  }
+  return parts.length ? parts.join(' AND ') : null;
+}
+
 function buildProductName(parentTitle, variantTitle) {
-  const parent = (parentTitle || '').trim();
-  const variant = (variantTitle || '').trim();
+  const parent = sanitizeNameText(parentTitle);
+  const variant = sanitizeNameText(variantTitle);
   if (!variant || variant.toLowerCase() === 'default title') return parent || variant || 'Shopify Item';
   if (!parent) return variant;
   return `${parent} - ${variant}`;
+}
+
+function sanitizeNameText(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  return raw
+    .replace(/\s*[-|]\s*(?:PHP|₱)\s*\d+(?:[.,]\d{1,2})?\s*$/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 function pickOptionValue(options, nameHint) {
@@ -115,19 +147,36 @@ function fallbackSku(variantId, idx) {
   return `SHOPIFY-${suffix}`;
 }
 
+function variantSuffix(variantId, idx) {
+  return (variantId || `idx-${idx + 1}`).split('/').pop();
+}
+
+function normalizeSkuForSync(baseSku, variantId, idx, baseSkuCounts) {
+  if (!baseSku) return fallbackSku(variantId, idx);
+  const count = Number(baseSkuCounts.get(baseSku) || 0);
+  if (count <= 1) return baseSku;
+  return `${baseSku}-${variantSuffix(variantId, idx)}`;
+}
+
 async function fetchExistingProducts(db) {
   const mapByVariantId = new Map();
   const mapBySku = new Map();
   let from = 0;
   const pageSize = 1000;
+  let page = 0;
+
+  console.log('[sync] Loading existing products from Supabase...');
 
   while (true) {
+    page += 1;
+    console.log(`[sync] Supabase pagination page ${page} (range ${from}-${from + pageSize - 1})`);
     const { data, error } = await db
       .from('products')
       .select('id, sku, shopify_variant_id')
       .range(from, from + pageSize - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
+    console.log(`[sync] Supabase page ${page} rows fetched: ${data.length}`);
     for (const row of data) {
       if (row.shopify_variant_id) mapByVariantId.set(row.shopify_variant_id, row);
       if (row.sku) mapBySku.set(row.sku, row);
@@ -140,10 +189,23 @@ async function fetchExistingProducts(db) {
 }
 
 async function main() {
+  const startedAt = Date.now();
   const args = parseArgs(process.argv);
-  const catalog = await fetchShopifyCatalog();
+  console.log('[sync] Shopify catalog sync script started.');
+  console.log(
+    `[sync] Mode: ${args.dryRun ? 'dry-run' : 'apply'}${args.limit ? `, limit=${args.limit}` : ''}${args.onlyActive ? ', only-active=true' : ''}${args.updatedSinceHours ? `, updated-since-hours=${args.updatedSinceHours}` : ''}`
+  );
+
+  const shopifyProductQuery = buildShopifyProductQuery(args);
+  if (shopifyProductQuery) {
+    console.log(`[sync] Shopify product query: ${shopifyProductQuery}`);
+  }
+  console.log('[sync] Connecting to Shopify API and fetching paginated catalog...');
+  const catalog = await fetchShopifyCatalog({ productQuery: shopifyProductQuery });
+  console.log('[sync] Shopify API connection successful.');
   const products = catalog.normalized.products;
   const variants = catalog.normalized.variants;
+  console.log(`[sync] Shopify pagination fetch complete. Products fetched: ${products.length}, variants fetched: ${variants.length}`);
   const productsById = new Map(products.map((p) => [p.shopify_product_id, p]));
 
   const cfg = readSupabaseConfig({ allowMissingWriteKey: args.dryRun });
@@ -164,19 +226,47 @@ async function main() {
   }
   const { mapByVariantId, mapBySku } = existingMaps;
   const syncAt = new Date().toISOString();
-  const targetVariants =
+  const limitedVariants =
     Number.isInteger(args.limit) && args.limit > 0 ? variants.slice(0, args.limit) : variants;
+  const targetVariants = args.onlyActive
+    ? limitedVariants.filter((variant) => {
+      const parent = productsById.get(variant.shopify_product_id);
+      const parentStatus = parent?.status || variant.parent_status;
+      return isActiveStatus(parentStatus);
+    })
+    : limitedVariants;
+  const baseSkuCounts = new Map();
+  for (let i = 0; i < targetVariants.length; i += 1) {
+    const v = targetVariants[i];
+    const baseSku = v.sku || fallbackSku(v.shopify_variant_id, i);
+    baseSkuCounts.set(baseSku, Number(baseSkuCounts.get(baseSku) || 0) + 1);
+  }
 
   let inserted = 0;
   let updatedByVariantId = 0;
   let updatedBySku = 0;
   let failed = 0;
+  const totalVariants = targetVariants.length;
+  const upsertBatchSize = 500;
+  const totalBatches = Math.max(1, Math.ceil(totalVariants / upsertBatchSize));
+
+  if (args.onlyActive) {
+    console.log(`[sync] Active-only filter applied. Variants after filter: ${totalVariants}/${limitedVariants.length}`);
+  }
+  console.log(`[sync] Variants to process: ${totalVariants}`);
+  console.log(`[sync] Supabase upsert batches: ${totalBatches} (batch size ${upsertBatchSize})`);
 
   for (let i = 0; i < targetVariants.length; i += 1) {
+    if (i % upsertBatchSize === 0) {
+      const batchIndex = Math.floor(i / upsertBatchSize) + 1;
+      const batchEnd = Math.min(totalVariants, i + upsertBatchSize);
+      console.log(`[sync] Starting Supabase upsert batch ${batchIndex}/${totalBatches} (variants ${i + 1}-${batchEnd})`);
+    }
     const variant = targetVariants[i];
     const parent = productsById.get(variant.shopify_product_id) || {};
     const options = variant.options_json || [];
-    const sku = variant.sku || fallbackSku(variant.shopify_variant_id, i);
+    const baseSku = variant.sku || fallbackSku(variant.shopify_variant_id, i);
+    const sku = normalizeSkuForSync(baseSku, variant.shopify_variant_id, i, baseSkuCounts);
     const payload = {
       name: buildProductName(parent.title, variant.title),
       sku,
@@ -241,16 +331,29 @@ async function main() {
       failed += 1;
       console.error(`[sync] Failed variant ${variant.shopify_variant_id || sku}: ${error.message}`);
     }
+
+    const processed = i + 1;
+    if (processed % upsertBatchSize === 0 || processed === totalVariants) {
+      const batchIndex = Math.ceil(processed / upsertBatchSize);
+      console.log(
+        `[sync] Completed upsert batch ${batchIndex}/${totalBatches}. Processed: ${processed}/${totalVariants} | inserted=${inserted}, updated_by_variant=${updatedByVariantId}, updated_by_sku=${updatedBySku}, failed=${failed}`
+      );
+    } else if (processed % 1000 === 0) {
+      console.log(`[sync] Progress: variants processed ${processed}/${totalVariants}`);
+    }
   }
 
   if (!args.dryRun) {
+    console.log('[sync] Refreshing barcode statuses...');
     const { error: refreshErr } = await db.rpc('refresh_product_barcode_statuses');
     if (refreshErr) {
       throw new Error(`Failed to refresh barcode statuses: ${refreshErr.message}`);
     }
+    console.log('[sync] Barcode status refresh complete.');
   }
 
   console.log('Shopify catalog sync finished.');
+  console.log(`[sync] Completion summary (elapsed ${Math.round((Date.now() - startedAt) / 1000)}s):`);
   console.log(`Dry run: ${args.dryRun ? 'yes' : 'no'}`);
   console.log(`Variants processed: ${targetVariants.length}`);
   console.log(`Supabase writable key available: ${cfg.writable ? 'yes' : 'no'}`);

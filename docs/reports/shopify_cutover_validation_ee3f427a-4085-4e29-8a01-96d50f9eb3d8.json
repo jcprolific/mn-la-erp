@@ -1,0 +1,29 @@
+{
+  "run": {
+    "id": "ee3f427a-4085-4e29-8a01-96d50f9eb3d8",
+    "status": "completed",
+    "started_at": "2026-03-14T01:32:30.597956+00:00",
+    "completed_at": "2026-03-14T01:32:30.597956+00:00",
+    "pre_products_count": 26700,
+    "post_products_count": 31616,
+    "pre_inventory_count": 1920,
+    "post_inventory_count": 1920,
+    "pre_inventory_movements_count": 1433,
+    "post_inventory_movements_count": 1433,
+    "error_message": null
+  },
+  "live": {
+    "products_count": 31616,
+    "inventory_count": 1919,
+    "inventory_movements_count": 1433,
+    "store_sales_with_product_count": 0,
+    "inventory_out_requests_count": 0
+  },
+  "checks": {
+    "inventory_row_count_preserved": true,
+    "inventory_movement_row_count_preserved": true,
+    "products_rebuilt": true,
+    "run_completed": true
+  },
+  "generated_at": "2026-03-14T01:34:35.904Z"
+}

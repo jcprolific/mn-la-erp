@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Today — Store Dashboard | MN+LA ERP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="store-mobile.css" />
+  <style>
+    .store-layout { display: flex; min-height: calc(100vh - var(--nav-height)); padding-top: var(--nav-height); }
+    .store-sidebar { width: 200px; flex-shrink: 0; background: var(--bg-secondary); border-right: 1px solid rgba(255,255,255,.06); padding: 16px 0; }
+    .store-sidebar__header { display: flex; align-items: center; gap: 8px; padding: 0 16px 12px; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+    .store-sidebar__nav { display: flex; flex-direction: column; gap: 2px; }
+    .store-sidebar__link { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: .85rem; color: var(--text-secondary); text-decoration: none; transition: background .15s, color .15s; }
+    .store-sidebar__link:hover { background: rgba(255,255,255,.05); color: var(--text-primary); }
+    .store-sidebar__link.active { background: rgba(122,159,196,.12); color: #7a9fc4; font-weight: 600; }
+    .store-main { flex: 1; overflow: auto; padding: 20px 24px 80px; max-width: 1100px; margin: 0 auto; }
+    .sd-page-title { font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+    .sd-page-sub { font-size: .8rem; color: var(--text-muted); margin-bottom: 14px; }
+    .sd-note { font-size: .78rem; color: #a8935c; margin-bottom: 18px; }
+    .sd-branch-badge { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; margin-bottom: 14px; background: rgba(122,159,196,.1); border: 1px solid rgba(122,159,196,.25); border-radius: 10px; font-size: .85rem; color: #7a9fc4; font-weight: 600; }
+    .sd-card { background: var(--bg-card); border: 1px solid rgba(255,255,255,.06); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+    .sd-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .sd-input { width: 100%; padding: 11px 12px; border-radius: 9px; background: var(--bg-primary); border: 1px solid rgba(255,255,255,.09); color: var(--text-primary); font-size: .92rem; box-sizing: border-box; }
+    .sd-input:focus { border-color: rgba(122,159,196,.4); outline: none; }
+    .sd-barcode-input-wrap { display:flex; align-items:center; gap:10px; width:100%; }
+    .sd-barcode-icon-btn { display:flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:12px; border:1px solid rgba(122,159,196,.3); background:rgba(122,159,196,.12); color:#7a9fc4; cursor:pointer; flex-shrink:0; transition:background .15s, border-color .15s; }
+    .sd-barcode-icon-btn:hover { background: rgba(122,159,196,.2); border-color: rgba(122,159,196,.5); }
+    .sd-barcode-search-btn { display:flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:12px; border:1px solid rgba(122,159,196,.3); background:rgba(122,159,196,.12); color:#7a9fc4; cursor:pointer; flex-shrink:0; transition:background .15s, border-color .15s; }
+    .sd-barcode-search-btn:hover { background: rgba(122,159,196,.2); border-color: rgba(122,159,196,.5); }
+    .sd-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(122,159,196,.35); background: rgba(122,159,196,.16); color: #aac8e8; font-weight: 600; cursor: pointer; }
+    .sd-btn:hover { background: rgba(122,159,196,.25); }
+    .sd-btn:disabled { opacity: .65; cursor: not-allowed; }
+    .sd-btn--danger { background: rgba(160,120,120,.16); border-color: rgba(160,120,120,.35); color: #ddb5b5; }
+    .sd-status { min-height: 20px; font-size: .85rem; color: var(--text-muted); margin-top: 8px; }
+    .sd-status--error { color: #dc3545; }
+    .sd-status--ok { color: #34d399; }
+    .sd-resolver { margin-top: 12px; border: 1px solid rgba(168,147,92,.35); border-radius: 10px; padding: 12px; background: rgba(168,147,92,.08); }
+    .sd-resolver h4 { margin: 0 0 8px 0; font-size: .88rem; color: var(--text-primary); }
+    .sd-resolver-item { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .sd-resolver-item:last-child { border-bottom: none; }
+    .sd-mini { font-size: .78rem; color: var(--text-muted); }
+    .sd-table-wrap { overflow-x: auto; }
+    .sd-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    .sd-table th { text-align: left; padding: 10px 12px; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sd-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.04); font-size: .84rem; }
+    .sd-empty { text-align: center; padding: 24px; color: var(--text-muted); font-size: .9rem; }
+    .sd-qty { display: inline-flex; align-items: center; gap: 6px; }
+    .sd-qty-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(255,255,255,.14); background: var(--bg-primary); color: var(--text-primary); cursor: pointer; }
+    .sd-qty-num { width: 30px; text-align: center; }
+    .sd-price-input { width: 110px; padding: 7px 8px; font-size: .82rem; }
+    .sd-price-input.sd-price-input--invalid { border-color: rgba(220,53,69,.85); }
+    .sd-totals { display: flex; justify-content: flex-end; gap: 16px; font-size: .92rem; font-weight: 600; margin-top: 12px; flex-wrap: wrap; }
+    .sd-stat-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .sd-stat { background: var(--bg-card); border: 1px solid rgba(255,255,255,.06); border-radius: 12px; padding: 12px; }
+    .sd-stat-label { font-size: .7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .sd-stat-value { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+    .sd-last-ref { margin-top: 10px; font-size: .85rem; color: #34d399; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-left">
+      <button type="button" class="store-hamburger" id="storeMenuBtn" aria-label="Open menu"><span class="material-icons-round">menu</span></button>
+      <div class="brand">
+        <a href="store.html" style="display:block;"><svg class="nav-logo" viewBox="0 0 440 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MN+LA"><rect x="4" y="4" width="432" height="142" rx="6" fill="none" stroke="white" stroke-width="8" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Inter,sans-serif" font-size="82" font-weight="700">MN+LA</text></svg></a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="logout-btn" id="logoutBtn" aria-label="Sign out"><span class="material-icons-round">logout</span></button>
+      <div class="profile-wrapper" id="profileWrapper">
+        <button class="profile-btn" id="profileBtn"><span class="profile-avatar" id="profileAvatar">—</span><span class="material-icons-round profile-chevron">expand_more</span></button>
+        <div class="profile-dropdown">
+          <div class="dropdown-header"><strong id="dropdownName">—</strong><small id="dropdownRole">—</small></div>
+          <div class="dropdown-divider"></div>
+          <a href="store.html" class="dropdown-item"><span class="material-icons-round">dashboard</span> Dashboard</a>
+          <a href="#" class="dropdown-item dropdown-item--danger" id="storeLogout"><span class="material-icons-round">logout</span> Sign Out</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="store-layout">
+    <div class="store-drawer-overlay" id="storeDrawerOverlay" aria-hidden="true"></div>
+    <aside class="store-sidebar">
+      <div class="store-sidebar__header"><span class="material-icons-round">storefront</span> Store</div>
+      <nav class="store-sidebar__nav">
+        <a href="store.html" class="store-sidebar__link"><span class="material-icons-round">dashboard</span> Dashboard</a>
+        <a href="store-inventory-in.html" class="store-sidebar__link"><span class="material-icons-round">input</span> Inventory In</a>
+        <a href="store-inventory-out.html" class="store-sidebar__link"><span class="material-icons-round">output</span> Inventory Out</a>
+        <a href="store-branch-stocks.html" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> Branch Stocks</a>
+        <a href="store-sales-today-v1.html" class="store-sidebar__link active"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
+      </nav>
+    </aside>
+    <main class="store-main">
+      <h1 class="sd-page-title">Sales Today</h1>
+      <p class="sd-page-sub">Scan sold items, build cart, and confirm an atomic sale for your store.</p>
+
+      <div class="sd-branch-badge" id="branchBadge"><span class="material-icons-round">store</span><span id="branchName">—</span></div>
+
+      <div class="sd-card">
+        <div class="sd-row">
+          <div class="sd-barcode-input-wrap">
+            <button type="button" id="barcodeScannerIcon" class="sd-barcode-icon-btn" aria-label="Focus barcode scanner" title="Focus barcode input">
+              <span class="material-icons-round" style="font-size:30px;">qr_code_scanner</span>
+            </button>
+            <input type="text" id="barcodeInput" class="sd-input" placeholder="Scan or type barcode then press Enter" autocomplete="off" />
+            <button type="button" id="barcodeSearchBtn" class="sd-barcode-search-btn" aria-label="Look up barcode" title="Look up barcode">
+              <span class="material-icons-round">search</span>
+            </button>
+          </div>
+        </div>
+        <div id="barcodeStatus" class="sd-status"></div>
+        <div id="barcodeResolver" class="sd-resolver" style="display:none;"></div>
+      </div>
+
+      <div class="sd-card">
+        <div class="sd-table-wrap">
+          <table class="sd-table" id="cartTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Variant</th>
+                <th>Barcode</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="cartBody"></tbody>
+          </table>
+          <div id="cartEmpty" class="sd-empty">No cart items yet.</div>
+        </div>
+        <div class="sd-totals">
+          <span>Total items: <strong id="totalItems">0</strong></span>
+          <span>Total amount: <strong id="totalAmount">₱0.00</strong></span>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" id="btnClearCart" class="sd-btn sd-btn--danger">Clear Cart</button>
+          <button type="button" id="btnConfirmSale" class="sd-btn"><span class="material-icons-round">check_circle</span>Confirm Sale</button>
+        </div>
+        <div id="lastReference" class="sd-last-ref" style="display:none;"></div>
+      </div>
+
+      <div class="sd-stat-row" style="margin-bottom:16px;">
+        <div class="sd-stat"><div class="sd-stat-label">Total Sales Today</div><div id="statSales" class="sd-stat-value">₱0.00</div></div>
+        <div class="sd-stat"><div class="sd-stat-label">Transactions Today</div><div id="statTxn" class="sd-stat-value">0</div></div>
+        <div class="sd-stat"><div class="sd-stat-label">Items Sold Today</div><div id="statItems" class="sd-stat-value">0</div></div>
+      </div>
+
+      <div class="sd-card">
+        <div style="font-weight:600; margin-bottom:10px;">Recent transactions today</div>
+        <div class="sd-table-wrap">
+          <table class="sd-table">
+            <thead><tr><th>Reference</th><th>Items</th><th>Amount</th><th>Time</th></tr></thead>
+            <tbody id="txnBody"><tr><td colspan="4" class="sd-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+  <script src="auth.js"></script>
+  <script src="session.js"></script>
+  <script>
+  (function () {
+    var cart = [];
+    var assignedLocationId = null;
+    var assignedBranchName = '—';
+    var isSaving = false;
+    var barcodeLookupCache = new Map();
+    var barcodeCacheLoadedAt = 0;
+    var barcodeCacheLoading = null;
+    var isBarcodeLookupInFlight = false;
+    var barcodeLookupQueue = [];
+    var BARCODE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+    function esc(v) { var d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML; }
+    function peso(v) { return '₱' + (Number(v) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function status(msg, type) {
+      var el = document.getElementById('barcodeStatus');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'sd-status' + (type ? ' sd-status--' + type : '');
+    }
+    function requestId() {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') return 'sale-' + window.crypto.randomUUID();
+      return 'sale-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    }
+    async function drainBarcodeLookupQueue() {
+      if (isBarcodeLookupInFlight) return;
+      isBarcodeLookupInFlight = true;
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H6',location:'store-sales-today-v1.html:drainBarcodeLookupQueue:start',message:'queue drain started',data:{queueLength:barcodeLookupQueue.length,inFlight:isBarcodeLookupInFlight},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+      try {
+        while (barcodeLookupQueue.length) {
+          var nextBarcode = barcodeLookupQueue.shift();
+          if (!nextBarcode) continue;
+          // #region agent log
+          try {
+            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H7',location:'store-sales-today-v1.html:drainBarcodeLookupQueue:item',message:'processing queued barcode',data:{barcode:nextBarcode,remainingQueue:barcodeLookupQueue.length},timestamp:Date.now()})}).catch(()=>{});
+          } catch (_) {}
+          // #endregion
+          try {
+            await addByBarcode(nextBarcode);
+          } catch (e) {
+            status((e && e.message) ? e.message : 'Barcode lookup failed.', 'error');
+            // #region agent log
+            try {
+              fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-2',hypothesisId:'H10',location:'store-sales-today-v1.html:drainBarcodeLookupQueue:itemError',message:'queued barcode processing failed but drain continues',data:{barcode:nextBarcode,error:(e&&e.message)||String(e),remainingQueue:barcodeLookupQueue.length},timestamp:Date.now()})}).catch(()=>{});
+            } catch (_) {}
+            // #endregion
+          }
+        }
+      } finally {
+        isBarcodeLookupInFlight = false;
+        // #region agent log
+        try {
+          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H6',location:'store-sales-today-v1.html:drainBarcodeLookupQueue:end',message:'queue drain ended',data:{queueLength:barcodeLookupQueue.length,inFlight:isBarcodeLookupInFlight},timestamp:Date.now()})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
+      }
+    }
+    function enqueueBarcodeLookup(raw) {
+      var barcode = normalizeBarcode(raw);
+      if (!barcode) return;
+      barcodeLookupQueue.push(barcode);
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H8',location:'store-sales-today-v1.html:enqueueBarcodeLookup',message:'barcode enqueued',data:{barcode:barcode,queueLength:barcodeLookupQueue.length,inFlight:isBarcodeLookupInFlight},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+      drainBarcodeLookupQueue();
+    }
+    function normalizeBarcode(raw) {
+      return String(raw || '').trim();
+    }
+    function normalizeMoney(raw) {
+      var n = Number(raw);
+      if (!Number.isFinite(n) || n < 0) return null;
+      return Math.round(n * 100) / 100;
+    }
+    function resolveUnitPrice(row) {
+      var candidates = [
+        row && row.resolved_price,
+        row && row.unit_price,
+        row && row.shopify_price,
+        row && row.selling_price,
+        row && row.price
+      ];
+      var zeroSeen = false;
+      for (var i = 0; i < candidates.length; i += 1) {
+        var normalized = normalizeMoney(candidates[i]);
+        if (normalized == null) continue;
+        if (normalized > 0) return normalized;
+        zeroSeen = true;
+      }
+      return zeroSeen ? 0 : 0;
+    }
+    function createLookupRowFromProduct(product) {
+      if (!product) return null;
+      return {
+        id: product.id || null,
+        product_id: product.id || null,
+        sku: product.sku || null,
+        name: product.name || null,
+        barcode: product.barcode || null,
+        size: product.size || null,
+        color: product.color || null,
+        variant_label: (product.size || product.color) ? [product.size, product.color].filter(Boolean).join(' / ') : (product.sku || null),
+        resolved_price: resolveUnitPrice(product),
+        shopify_variant_id: product.shopify_variant_id || null,
+        shopify_inventory_item_id: product.shopify_inventory_item_id || null,
+        shopify_price: product.shopify_price != null ? product.shopify_price : null,
+        selling_price: product.selling_price != null ? product.selling_price : null,
+        barcode_status: product.barcode_status || null,
+        scanner_enabled: product.scanner_enabled === true,
+        match_count: 1,
+        created_at: product.created_at || null
+      };
+    }
+    function setCachedBarcodeRows(barcode, rows) {
+      var key = normalizeBarcode(barcode);
+      if (!key) return;
+      barcodeLookupCache.set(key, Array.isArray(rows) ? rows : []);
+    }
+    function getCachedBarcodeRows(barcode) {
+      var key = normalizeBarcode(barcode);
+      if (!key) return [];
+      var rows = barcodeLookupCache.get(key);
+      return Array.isArray(rows) ? rows : [];
+    }
+    function applyMatchCount(rows) {
+      if (!Array.isArray(rows) || !rows.length) return [];
+      var n = rows.length;
+      return rows.map(function(row) {
+        return Object.assign({}, row, { match_count: n });
+      });
+    }
+    async function preloadBarcodeCacheForLocation(force) {
+      if (!window.db || !assignedLocationId) return;
+      var now = Date.now();
+      if (!force && barcodeCacheLoadedAt && (now - barcodeCacheLoadedAt) < BARCODE_CACHE_TTL_MS) return;
+      if (barcodeCacheLoading) return barcodeCacheLoading;
+      var preloadStartedAt = Date.now();
+      barcodeCacheLoading = (async function() {
+        try {
+          var invRes = await window.db
+            .from('inventory')
+            .select('quantity, products(id,sku,name,barcode,size,color,shopify_price,shopify_variant_id,shopify_inventory_item_id,barcode_status,scanner_enabled,created_at)')
+            .eq('location_id', assignedLocationId)
+            .gt('quantity', 0);
+          if (invRes.error) throw invRes.error;
+          barcodeLookupCache.clear();
+          var rows = Array.isArray(invRes.data) ? invRes.data : [];
+          rows.forEach(function(invRow) {
+            var p = Array.isArray(invRow.products) ? invRow.products[0] : invRow.products;
+            var lookup = createLookupRowFromProduct(p);
+            if (!lookup || !lookup.barcode) return;
+            var key = normalizeBarcode(lookup.barcode);
+            if (!key) return;
+            var current = getCachedBarcodeRows(key);
+            current.push(lookup);
+            setCachedBarcodeRows(key, current);
+          });
+          Array.from(barcodeLookupCache.keys()).forEach(function(key) {
+            setCachedBarcodeRows(key, applyMatchCount(getCachedBarcodeRows(key)));
+          });
+          barcodeCacheLoadedAt = Date.now();
+          // #region agent log
+          try {
+            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H2',location:'store-sales-today-v1.html:preloadBarcodeCacheForLocation:done',message:'barcode cache preload completed',data:{force:!!force,assignedLocationId:assignedLocationId,inventoryRows:rows.length,cacheKeys:barcodeLookupCache.size,duration_ms:Date.now()-preloadStartedAt},timestamp:Date.now()})}).catch(()=>{});
+          } catch (_) {}
+          // #endregion
+        } catch (e) {
+          // #region agent log
+          try {
+            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H2',location:'store-sales-today-v1.html:preloadBarcodeCacheForLocation:error',message:'barcode cache preload failed',data:{force:!!force,assignedLocationId:assignedLocationId,error:(e&&e.message)||String(e)},timestamp:Date.now()})}).catch(()=>{});
+          } catch (_) {}
+          // #endregion
+          throw e;
+        } finally {
+          barcodeCacheLoading = null;
+        }
+      })();
+      return barcodeCacheLoading;
+    }
+    async function resolveBarcodeRowsFromSource(barcode) {
+      var cachedRows = getCachedBarcodeRows(barcode);
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H3',location:'store-sales-today-v1.html:resolveBarcodeRowsFromSource',message:'cache lookup evaluated',data:{barcode:barcode,cachedRows:cachedRows.length},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+      if (cachedRows.length) {
+        return { rows: cachedRows, source: 'cache' };
+      }
+      return { rows: null, source: 'miss' };
+    }
+
+    async function resolveLocation(profile) {
+      if (!profile) return null;
+      if (profile.role === 'store_associate') return profile.location_id || null;
+      var saved = localStorage.getItem('store_dashboard_selected_location_id');
+      if (saved) return saved;
+      if (!window.db) return profile.location_id || null;
+      var res = await window.db.from('locations').select('id,name').eq('type', 'store').order('name').limit(1);
+      return res && res.data && res.data[0] ? res.data[0].id : (profile.location_id || null);
+    }
+
+    async function resolveBranchName(locationId, profile) {
+      if (profile && profile.locations && profile.locations.name && profile.location_id === locationId) return profile.locations.name;
+      if (!locationId || !window.db) return '—';
+      var res = await window.db.from('locations').select('name').eq('id', locationId).maybeSingle();
+      return (res && res.data && res.data.name) ? res.data.name : '—';
+    }
+    async function getBranchStock(productId) {
+      if (!productId || !assignedLocationId || !window.db) return 0;
+      try {
+        var inv = await window.db
+          .from('inventory')
+          .select('quantity')
+          .eq('product_id', productId)
+          .eq('location_id', assignedLocationId)
+          .maybeSingle();
+        if (inv.error) return 0;
+        return Number(inv.data && inv.data.quantity || 0);
+      } catch (_) {
+        return 0;
+      }
+    }
+
+    async function guard() {
+      await window.Auth.guard();
+      var p = window.Auth.profile;
+      if (!p || ['store_associate', 'owner', 'admin'].indexOf(p.role) === -1) {
+        window.location.replace('index.html');
+        return false;
+      }
+      assignedLocationId = await resolveLocation(p);
+      if (!assignedLocationId) {
+        status('No branch selected/assigned for this account.', 'error');
+        return false;
+      }
+      assignedBranchName = await resolveBranchName(assignedLocationId, p);
+      var roleText = (p.role || '') + (assignedBranchName ? ' • ' + assignedBranchName : '');
+      document.getElementById('dropdownName').textContent = p.full_name || 'User';
+      document.getElementById('dropdownRole').textContent = roleText;
+      document.getElementById('profileAvatar').textContent = (p.full_name || 'U').split(' ').map(function(w){ return w[0]; }).join('').toUpperCase().slice(0, 2);
+      document.getElementById('branchName').textContent = assignedBranchName;
+      function _doLogout(e){ e.preventDefault(); e.stopPropagation(); (window.Auth && window.Auth.logout) ? window.Auth.logout() : window.location.replace('login.html'); }
+      document.getElementById('logoutBtn').addEventListener('click', _doLogout);
+      document.getElementById('storeLogout').addEventListener('click', _doLogout);
+      var pw = document.getElementById('profileWrapper');
+      document.getElementById('profileBtn').addEventListener('click', function(e){ e.stopPropagation(); pw.classList.toggle('open'); });
+      document.addEventListener('click', function(){ pw.classList.remove('open'); });
+      return true;
+    }
+
+    function addToCart(row) {
+      var idx = cart.findIndex(function(x) { return x.product_id === row.product_id; });
+      if (idx >= 0) cart[idx].quantity += 1;
+      else cart.push({
+        product_id: row.product_id,
+        barcode: row.barcode || '',
+        name: row.name || row.product_name_snapshot || '—',
+        variant_label: row.variant_label || row.size || row.size_snapshot || '—',
+        price: resolveUnitPrice(row),
+        quantity: 1
+      });
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'pre-fix',hypothesisId:'H3',location:'store-sales-today-v1.html:addToCart',message:'cart line added with resolved price',data:{product_id:row.product_id||null,barcode:row.barcode||null,resolved_price:row.resolved_price,final_price:Number(row.resolved_price != null ? row.resolved_price : row.price || 0),qty:idx>=0?cart[idx].quantity:1},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+      renderCart();
+    }
+
+    function normalizeLinePrice(raw) {
+      var text = String(raw == null ? '' : raw).trim();
+      if (!text) return null;
+      var n = Number(text);
+      if (!Number.isFinite(n) || n < 0) return null;
+      return Math.round(n * 100) / 100;
+    }
+
+    function lineSubtotal(line) {
+      return (Number(line && line.price) || 0) * (Number(line && line.quantity) || 0);
+    }
+
+    function updateCartTotals() {
+      var totalItems = cart.reduce(function(s, r) { return s + (Number(r.quantity) || 0); }, 0);
+      var totalAmount = cart.reduce(function(s, r) { return s + lineSubtotal(r); }, 0);
+      document.getElementById('totalItems').textContent = totalItems.toLocaleString();
+      document.getElementById('totalAmount').textContent = peso(totalAmount);
+    }
+
+    function updateLineSubtotal(index) {
+      var cell = document.querySelector('[data-subtotal-index="' + index + '"]');
+      if (!cell || !cart[index]) return;
+      cell.textContent = peso(lineSubtotal(cart[index]));
+    }
+
+    function setQty(i, delta) {
+      if (!cart[i]) return;
+      cart[i].quantity = Math.max(1, (cart[i].quantity || 1) + delta);
+      renderCart();
+    }
+    function removeLine(i) { cart.splice(i, 1); renderCart(); }
+    function clearCart() { cart = []; renderCart(); }
+
+    function renderCart() {
+      var table = document.getElementById('cartTable');
+      var empty = document.getElementById('cartEmpty');
+      var body = document.getElementById('cartBody');
+      if (!cart.length) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+      } else {
+        table.style.display = 'table';
+        empty.style.display = 'none';
+        body.innerHTML = cart.map(function(r, i) {
+          var priceValue = Number.isFinite(Number(r.price)) ? Number(r.price).toFixed(2) : '';
+          var subtotal = lineSubtotal(r);
+          return '<tr>' +
+            '<td>' + esc(r.name) + '</td>' +
+            '<td>' + esc(r.variant_label || '—') + '</td>' +
+            '<td>' + esc(r.barcode || '—') + '</td>' +
+            '<td><input type="number" min="0" step="0.01" class="sd-input sd-price-input' + (priceValue === '' ? ' sd-price-input--invalid' : '') + '" data-price-index="' + i + '" value="' + esc(priceValue) + '" /></td>' +
+            '<td><div class="sd-qty"><button class="sd-qty-btn" data-action="dec" data-index="' + i + '">-</button><span class="sd-qty-num">' + (r.quantity || 1) + '</span><button class="sd-qty-btn" data-action="inc" data-index="' + i + '">+</button></div></td>' +
+            '<td data-subtotal-index="' + i + '">' + peso(subtotal) + '</td>' +
+            '<td><button class="sd-qty-btn" data-action="rm" data-index="' + i + '">x</button></td>' +
+            '</tr>';
+        }).join('');
+        body.querySelectorAll('button[data-action]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var i = parseInt(btn.dataset.index, 10);
+            if (btn.dataset.action === 'dec') setQty(i, -1);
+            if (btn.dataset.action === 'inc') setQty(i, 1);
+            if (btn.dataset.action === 'rm') removeLine(i);
+          });
+        });
+        body.querySelectorAll('input[data-price-index]').forEach(function(input) {
+          input.addEventListener('input', function() {
+            var i = parseInt(input.dataset.priceIndex, 10);
+            if (!cart[i]) return;
+            var normalized = normalizeLinePrice(input.value);
+            cart[i].price = normalized;
+            input.classList.toggle('sd-price-input--invalid', normalized === null);
+            updateLineSubtotal(i);
+            updateCartTotals();
+          });
+          input.addEventListener('blur', function() {
+            var i = parseInt(input.dataset.priceIndex, 10);
+            if (!cart[i]) return;
+            var normalized = normalizeLinePrice(input.value);
+            if (normalized !== null) {
+              cart[i].price = normalized;
+              input.value = normalized.toFixed(2);
+              input.classList.remove('sd-price-input--invalid');
+            } else {
+              cart[i].price = null;
+              input.classList.add('sd-price-input--invalid');
+            }
+            updateLineSubtotal(i);
+            updateCartTotals();
+          });
+        });
+      }
+      updateCartTotals();
+    }
+
+    function renderResolver(rows, barcode) {
+      var box = document.getElementById('barcodeResolver');
+      if (!rows || !rows.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+      box.style.display = 'block';
+      box.innerHTML = '<h4>Multiple/guarded matches for barcode: ' + esc(barcode) + '</h4>' +
+        rows.map(function(r, idx) {
+          return '<div class="sd-resolver-item">' +
+            '<div><div><strong>' + esc(r.name || r.sku || '—') + '</strong></div><div class="sd-mini">' + esc(r.variant_label || r.size || '—') + ' • ' + esc(r.sku || '') + ' • ' + peso(r.resolved_price) + '</div></div>' +
+            '<button type="button" class="sd-btn" data-pick="' + idx + '">Choose</button>' +
+          '</div>';
+        }).join('');
+      box.querySelectorAll('button[data-pick]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var r = rows[parseInt(btn.dataset.pick, 10)];
+          addToCart(r);
+          renderResolver([], '');
+          status('Added via manual selection: ' + (r.name || r.sku || 'item'), 'ok');
+        });
+      });
+    }
+
+    async function addByBarcode(raw) {
+      var barcode = normalizeBarcode(raw);
+      if (!barcode || !window.db) return;
+      var startedAt = Date.now();
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'pre-fix',hypothesisId:'H1',location:'store-sales-today-v1.html:addByBarcode:start',message:'barcode lookup started',data:{barcode:barcode,assignedLocationId:assignedLocationId||null,cartLines:cart.length},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+      status('Resolving barcode…');
+      renderResolver([], '');
+      preloadBarcodeCacheForLocation(false);
+      var source = await resolveBarcodeRowsFromSource(barcode);
+      var rows = source.rows;
+      if (!rows || !rows.length) {
+        // #region agent log
+        try {
+          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'post-fix',hypothesisId:'H1',location:'store-sales-today-v1.html:addByBarcode:rpcCall',message:'calling get_product_by_barcode',data:{barcode:barcode},timestamp:Date.now()})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
+        var res = null;
+        try {
+          var rpcBuilder = window.db.rpc('get_product_by_barcode', { p_barcode: barcode });
+          if (rpcBuilder && typeof rpcBuilder.abortSignal === 'function' && typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+            rpcBuilder = rpcBuilder.abortSignal(AbortSignal.timeout(4500));
+          }
+          res = await rpcBuilder;
+        } catch (rpcErr) {
+          // #region agent log
+          try {
+            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-2',hypothesisId:'H11',location:'store-sales-today-v1.html:addByBarcode:rpcException',message:'barcode rpc threw exception',data:{barcode:barcode,error:(rpcErr&&rpcErr.message)||String(rpcErr)},timestamp:Date.now()})}).catch(()=>{});
+          } catch (_) {}
+          // #endregion
+          try {
+            await preloadBarcodeCacheForLocation(true);
+          } catch (_) {}
+          rows = getCachedBarcodeRows(barcode);
+          if (!rows.length) {
+            status('Barcode lookup timed out. Please rescan.', 'error');
+            return;
+          }
+          res = { data: rows, error: null };
+        }
+        // #region agent log
+        try {
+          var _rows = Array.isArray(res && res.data) ? res.data : (res && res.data ? [res.data] : []);
+          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'post-fix',hypothesisId:'H1',location:'store-sales-today-v1.html:addByBarcode:rpcDone',message:'barcode rpc completed',data:{barcode:barcode,duration_ms:Date.now()-startedAt,error:(res&&res.error&&res.error.message)||null,rowCount:_rows.length,productId:_rows[0]&&(_rows[0].product_id||_rows[0].id)},timestamp:Date.now()})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
+        if (res.error) {
+          status(res.error.message || 'Barcode lookup failed.', 'error');
+          return;
+        }
+        rows = (Array.isArray(res.data) ? res.data : (res.data ? [res.data] : [])).map(function(r) {
+          var lookup = createLookupRowFromProduct(r);
+          if (lookup && !lookup.product_id && r && r.id) lookup.product_id = r.id;
+          return lookup;
+        }).filter(Boolean);
+        if (rows.length) {
+          setCachedBarcodeRows(barcode, applyMatchCount(rows));
+          preloadBarcodeCacheForLocation(true);
+        }
+      }
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'pre-fix',hypothesisId:'H1',location:'store-sales-today-v1.html:addByBarcode:source',message:'barcode source selected',data:{barcode:barcode,source:rows&&rows.length&&source.source==='cache'?'cache':'rpc',duration_ms:Date.now()-startedAt,rowCount:(rows&&rows.length)||0},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+      rows = applyMatchCount(rows);
+      setCachedBarcodeRows(barcode, rows);
+      if (!rows.length) {
+        // #region agent log
+        try {
+          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H5',location:'store-sales-today-v1.html:addByBarcode:notFound',message:'barcode ended as not found',data:{barcode:barcode,duration_ms:Date.now()-startedAt,source:source&&source.source?source.source:'unknown',assignedLocationId:assignedLocationId||null},timestamp:Date.now()})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
+        status('Barcode not found in sellable catalog.', 'error');
+        return;
+      }
+      var chosen = rows[0];
+      var chosenProductId = chosen.product_id || chosen.id || null;
+      if (!chosenProductId) {
+        status('Barcode match has no product ID.', 'error');
+        return;
+      }
+      var branchStock = await getBranchStock(chosenProductId);
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'post-fix',hypothesisId:'H4',location:'store-sales-today-v1.html:addByBarcode:branchStockGate',message:'evaluated branch stock before add',data:{barcode:barcode,productId:chosenProductId,branchStock:branchStock,locationId:assignedLocationId||null,source:source&&source.source?source.source:'unknown'},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+      if (!Number.isFinite(branchStock) || branchStock <= 0) {
+        status('Product found, but no available stock for this branch.', 'error');
+        return;
+      }
+      chosen.product_id = chosenProductId;
+      chosen.scanner_enabled = true;
+      addToCart(chosen);
+      status('Added: ' + (chosen.name || chosen.sku || 'item'), 'ok');
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H9',location:'store-sales-today-v1.html:addByBarcode:success',message:'barcode added to cart successfully',data:{barcode:barcode,productId:chosenProductId,cartLinesAfter:cart.length},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+    }
+
+    async function confirmSale() {
+      if (isSaving) return;
+      if (!cart.length) { status('Cart is empty.', 'error'); return; }
+      if (!assignedLocationId) { status('No store location available.', 'error'); return; }
+      var invalidPriceLine = cart.findIndex(function(r) {
+        var p = Number(r.price);
+        return !Number.isFinite(p) || p < 0;
+      });
+      if (invalidPriceLine >= 0) {
+        status('Please enter a valid non-negative price for all cart items before confirming.', 'error');
+        return;
+      }
+      isSaving = true;
+      var btn = document.getElementById('btnConfirmSale');
+      btn.disabled = true;
+      var prev = btn.innerHTML;
+      btn.innerHTML = '<span class="material-icons-round">hourglass_top</span>Saving…';
+      status('');
+      try {
+        var payload = cart.map(function(r) {
+          return {
+            product_id: r.product_id,
+            barcode: r.barcode || null,
+            quantity: Number(r.quantity) || 0,
+            unit_price: Number(r.price)
+          };
+        });
+        var reqId = requestId();
+        var rpc = await window.db.rpc('process_store_sale', {
+          p_items: payload,
+          p_request_id: reqId,
+          p_location_id: assignedLocationId
+        });
+        if (rpc.error) throw rpc.error;
+        var tx = rpc.data && rpc.data.transaction ? rpc.data.transaction : null;
+        var ref = tx && tx.reference_no ? tx.reference_no : '—';
+        clearCart();
+        status('Sale confirmed successfully.', 'ok');
+        var refEl = document.getElementById('lastReference');
+        refEl.style.display = 'block';
+        refEl.textContent = 'Saved sale reference: ' + ref;
+        await loadSalesToday();
+      } catch (e) {
+        status((e && e.message) ? e.message : 'Failed to confirm sale.', 'error');
+      } finally {
+        isSaving = false;
+        btn.disabled = false;
+        btn.innerHTML = prev;
+      }
+    }
+
+    function timeStr(d) {
+      if (!d) return '—';
+      var x = new Date(d);
+      return x.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function loadSalesToday() {
+      if (!window.db || !assignedLocationId) return;
+      var res = await window.db.rpc('get_store_sales_today_v1', { p_location_id: assignedLocationId });
+      var summary = res && res.data && res.data.summary ? res.data.summary : {};
+      var txns = res && res.data && Array.isArray(res.data.transactions) ? res.data.transactions : [];
+      document.getElementById('statSales').textContent = peso(summary.total_sales || 0);
+      document.getElementById('statTxn').textContent = Number(summary.transaction_count || 0).toLocaleString();
+      document.getElementById('statItems').textContent = Number(summary.items_sold || 0).toLocaleString();
+      var body = document.getElementById('txnBody');
+      if (!txns.length) {
+        body.innerHTML = '<tr><td colspan="4" class="sd-empty">No confirmed sales yet for today.</td></tr>';
+        return;
+      }
+      body.innerHTML = txns.map(function(t) {
+        return '<tr><td>' + esc(t.reference_no || '—') + '</td><td>' + Number(t.total_items || 0) + '</td><td>' + peso(t.total_amount || 0) + '</td><td>' + timeStr(t.created_at) + '</td></tr>';
+      }).join('');
+    }
+
+    document.getElementById('barcodeScannerIcon').addEventListener('click', function() {
+      var input = document.getElementById('barcodeInput');
+      input.focus();
+      input.select();
+      status('Scanner ready. Scan barcode now.');
+    });
+    document.getElementById('barcodeSearchBtn').addEventListener('click', function() {
+      var input = document.getElementById('barcodeInput');
+      var barcode = normalizeBarcode(input.value || '');
+      input.value = '';
+      input.focus();
+      enqueueBarcodeLookup(barcode);
+    });
+    document.getElementById('barcodeInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        var input = document.getElementById('barcodeInput');
+        var barcodeNow = normalizeBarcode(input.value || '');
+        // #region agent log
+        try {
+          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H1',location:'store-sales-today-v1.html:barcodeInput:keydownEnter',message:'enter detected on barcode input',data:{rawLength:(input.value||'').length,normalizedBarcode:barcodeNow||null},timestamp:Date.now()})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
+        input.value = '';
+        input.focus();
+        enqueueBarcodeLookup(barcodeNow);
+      }
+    });
+    document.getElementById('btnClearCart').addEventListener('click', function() {
+      clearCart();
+      status('Cart cleared.');
+      renderResolver([], '');
+    });
+    document.getElementById('btnConfirmSale').addEventListener('click', confirmSale);
+
+    (function() {
+      function closeDrawer() {
+        document.body.classList.remove('store-drawer-open');
+        var o = document.getElementById('storeDrawerOverlay');
+        if (o) o.classList.remove('is-open');
+      }
+      function openDrawer() {
+        document.body.classList.add('store-drawer-open');
+        var o = document.getElementById('storeDrawerOverlay');
+        if (o) o.classList.add('is-open');
+      }
+      function toggleDrawer() {
+        if (document.body.classList.contains('store-drawer-open')) closeDrawer(); else openDrawer();
+      }
+      var btn = document.getElementById('storeMenuBtn');
+      var overlay = document.getElementById('storeDrawerOverlay');
+      if (btn) btn.addEventListener('click', toggleDrawer);
+      if (overlay) overlay.addEventListener('click', closeDrawer);
+      document.querySelectorAll('.store-sidebar__link').forEach(function(link) {
+        link.addEventListener('click', closeDrawer);
+      });
+    })();
+
+    guard().then(async function(ok) {
+      if (!ok) return;
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'pre-fix',hypothesisId:'H4',location:'store-sales-today-v1.html:init',message:'scanner capability snapshot',data:{hasBarcodeDetector:typeof BarcodeDetector!=='undefined',hasMediaDevices:!!(navigator&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia),secureContext:!!window.isSecureContext,userAgent:navigator&&navigator.userAgent?navigator.userAgent.slice(0,120):''},timestamp:Date.now()})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
+      renderCart();
+      loadSalesToday();
+      try { await preloadBarcodeCacheForLocation(false); } catch (_) {}
+      document.getElementById('barcodeInput').focus();
+    });
+  })();
+  </script>
+</body>
+</html>

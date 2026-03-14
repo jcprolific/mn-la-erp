@@ -142,8 +142,8 @@ function normalizeVariant(variant, product) {
 }
 
 const PRODUCTS_QUERY = `
-query FetchProducts($pageSize: Int!, $after: String) {
-  products(first: $pageSize, after: $after, sortKey: UPDATED_AT) {
+query FetchProducts($pageSize: Int!, $after: String, $query: String) {
+  products(first: $pageSize, after: $after, sortKey: UPDATED_AT, query: $query) {
     pageInfo { hasNextPage endCursor }
     edges {
       node {
@@ -230,9 +230,10 @@ async function fetchAllVariantsForProduct({ endpoint, token, productId }) {
   return variants;
 }
 
-async function fetchShopifyCatalog() {
+async function fetchShopifyCatalog(options = {}) {
   const cfg = readShopifyConfig();
   const endpoint = `https://${cfg.storeDomain}/admin/api/${cfg.apiVersion}/graphql.json`;
+  const productQuery = normalizeText(options.productQuery);
 
   let hasNextPage = true;
   let after = null;
@@ -245,7 +246,7 @@ async function fetchShopifyCatalog() {
       endpoint,
       token: cfg.adminAccessToken,
       query: PRODUCTS_QUERY,
-      variables: { pageSize: PRODUCTS_PAGE_SIZE, after },
+      variables: { pageSize: PRODUCTS_PAGE_SIZE, after, query: productQuery },
     });
 
     const connection = data?.products;

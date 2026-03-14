@@ -62,12 +62,12 @@
         <a href="store-inventory-out.html" class="store-sidebar__link active"><span class="material-icons-round">output</span> Inventory Out</a>
         <a href="store-branch-stocks.html" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> Branch Stocks</a>
         <a href="store-branch-stocks.html#view=all" class="store-sidebar__link"><span class="material-icons-round">inventory_2</span> All Branch Stocks</a>
-        <a href="store-sales-today.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
+        <a href="store-sales-today-v1.html" class="store-sidebar__link"><span class="material-icons-round">point_of_sale</span> Sales Today</a>
       </nav>
     </aside>
     <main class="store-main">
       <h1 class="sd-page-title">Inventory Out</h1>
-      <p class="sd-page-sub">Request stock out from your branch. Requests are pending until approved.</p>
+      <p class="sd-page-sub">Process stock out from your branch for pullout, exchange, or damaged items. Inventory is deducted immediately.</p>
 
       <div class="sd-card">
         <div class="sd-form-group">
@@ -92,7 +92,7 @@
           </select>
         </div>
         <div id="submitGroup" style="margin-top:16px;display:none;">
-          <button type="button" class="sd-btn-primary" id="btnSubmitOut">Submit request</button>
+          <button type="button" class="sd-btn-primary" id="btnSubmitOut">Process inventory out</button>
         </div>
       </div>
     </main>
@@ -137,6 +137,24 @@
   var productId = null;
   var branchQty = 0;
 
+  function isMissingInventoryOutAuditTableError(err) {
+    var msg = ((err && err.message) || '').toLowerCase();
+    return msg.indexOf('inventory_out_requests') !== -1 || msg.indexOf('activity_logs') !== -1;
+  }
+
+  async function processFallbackViaSetCount(qty, reason) {
+    var nextQty = Math.max(0, Number(branchQty || 0) - Number(qty || 0));
+    var fallbackReason = 'Inventory out (' + (reason || 'unspecified') + ')';
+    var { error } = await window.db.rpc('set_inventory_count', {
+      p_product_id: productId,
+      p_counted_quantity: nextQty,
+      p_reason: fallbackReason
+    });
+    if (error) throw error;
+    branchQty = nextQty;
+    outBranchQty.textContent = String(nextQty);
+  }
+
   async function searchProduct() {
     var q = (searchInput.value || '').trim();
     if (!q || !window.db || !window.Session || !window.Session.locationId()) return;
@@ -178,8 +196,14 @@
     btn.disabled = true;
     try {
       var { data, error } = await window.db.rpc('store_request_inventory_out', { p_product_id: productId, p_quantity: qty, p_reason: reason });
-      if (error) throw error;
-      if (window.Auth.toast) window.Auth.toast('Request submitted. Pending approval.', 'success');
+      if (error) {
+        if (isMissingInventoryOutAuditTableError(error)) {
+          await processFallbackViaSetCount(qty, reason);
+        } else {
+          throw error;
+        }
+      }
+      if (window.Auth.toast) window.Auth.toast('Inventory out processed. Branch stock updated.', 'success');
       searchInput.value = ''; document.getElementById('outQtyInput').value = '1';
       productResult.style.display = outQtyGroup.style.display = reasonGroup.style.display = submitGroup.style.display = 'none';
       productId = null;
