@@ -42,6 +42,14 @@
     .sd-resolver h4 { margin: 0 0 8px 0; font-size: .88rem; color: var(--text-primary); }
     .sd-resolver-item { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
     .sd-resolver-item:last-child { border-bottom: none; }
+    .sd-live-results { margin-top: 10px; border: 1px solid rgba(122,159,196,.25); border-radius: 10px; background: rgba(122,159,196,.08); overflow: hidden; }
+    .sd-live-results[hidden] { display: none; }
+    .sd-live-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .sd-live-item:last-child { border-bottom: none; }
+    .sd-live-item__name { font-size: .9rem; font-weight: 600; color: var(--text-primary); }
+    .sd-live-item__meta { margin-top: 3px; font-size: .78rem; color: var(--text-muted); }
+    .sd-live-pick { padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(122,159,196,.35); background: rgba(122,159,196,.14); color: #aac8e8; font-size: .8rem; font-weight: 600; cursor: pointer; }
+    .sd-live-pick:disabled { opacity: .5; cursor: not-allowed; }
     .sd-mini { font-size: .78rem; color: var(--text-muted); }
     .sd-table-wrap { overflow-x: auto; }
     .sd-table { width: 100%; border-collapse: collapse; min-width: 760px; }
@@ -87,6 +95,13 @@
       .sd-resolver-item .sd-btn {
         width: 100%;
         justify-content: center;
+      }
+      .sd-live-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .sd-live-pick {
+        width: 100%;
       }
       .sd-totals {
         justify-content: space-between;
@@ -163,6 +178,7 @@
             </button>
           </div>
         </div>
+        <div id="liveLookupResults" class="sd-live-results" hidden></div>
         <div id="barcodeStatus" class="sd-status"></div>
         <div id="barcodeResolver" class="sd-resolver" style="display:none;"></div>
       </div>
@@ -206,7 +222,7 @@
         <div style="font-weight:600; margin-bottom:10px;">Recent transactions today</div>
         <div class="sd-table-wrap">
           <table class="sd-table">
-            <thead><tr><th>Reference</th><th>Items</th><th>Amount</th><th>Time</th></tr></thead>
+            <thead><tr><th>Products</th><th>Items</th><th>Amount</th><th>Time</th></tr></thead>
             <tbody id="txnBody"><tr><td colspan="4" class="sd-empty">Loading…</td></tr></tbody>
           </table>
         </div>
@@ -230,6 +246,7 @@
     var isBarcodeLookupInFlight = false;
     var barcodeLookupQueue = [];
     var BARCODE_CACHE_TTL_MS = 5 * 60 * 1000;
+    var liveLookupTimer = null;
 
     function esc(v) { var d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML; }
     function peso(v) { return '₱' + (Number(v) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -663,6 +680,72 @@
       return true;
     }
 
+    async function fetchLiveLookupRows(raw) {
+      var q = normalizeBarcode(raw);
+      if (!q || !window.db) return [];
+      var term = escapeILike(q);
+      if (!term) return [];
+      var res = await window.db
+        .from('products')
+        .select('id,sku,name,barcode,size,color,shopify_price,shopify_variant_id,shopify_inventory_item_id,barcode_status,scanner_enabled,created_at')
+        .or('name.ilike.%' + term + '%,sku.ilike.%' + term + '%,barcode.ilike.%' + term + '%')
+        .limit(8);
+      if (res.error) return [];
+      var rows = (Array.isArray(res.data) ? res.data : []).map(createLookupRowFromProduct).filter(Boolean);
+      var checks = await Promise.all(rows.map(async function(r) {
+        var pid = r.product_id || r.id || null;
+        if (!pid) return null;
+        var stock = await getBranchStock(pid);
+        r.product_id = pid;
+        r.branch_stock = Number(stock || 0);
+        return r;
+      }));
+      return checks.filter(Boolean);
+    }
+
+    function hideLiveLookupResults() {
+      var box = document.getElementById('liveLookupResults');
+      if (!box) return;
+      box.hidden = true;
+      box.innerHTML = '';
+    }
+
+    function renderLiveLookupResults(rows) {
+      var box = document.getElementById('liveLookupResults');
+      if (!box) return;
+      var list = Array.isArray(rows) ? rows : [];
+      if (!list.length) {
+        hideLiveLookupResults();
+        return;
+      }
+      box.hidden = false;
+      box.innerHTML = list.map(function(r, idx) {
+        var stock = Number(r.branch_stock || 0);
+        var disabled = stock <= 0 ? 'disabled' : '';
+        var action = stock > 0 ? 'Add' : 'No stock';
+        return '' +
+          '<div class="sd-live-item">' +
+            '<div>' +
+              '<div class="sd-live-item__name">' + esc(r.name || r.sku || 'Unnamed product') + '</div>' +
+              '<div class="sd-live-item__meta">SKU: ' + esc(r.sku || '—') + ' • Branch stock: ' + stock + '</div>' +
+            '</div>' +
+            '<button type="button" class="sd-live-pick" data-pick="' + idx + '" ' + disabled + '>' + action + '</button>' +
+          '</div>';
+      }).join('');
+      box.querySelectorAll('button[data-pick]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var idx = parseInt(btn.getAttribute('data-pick'), 10);
+          var row = list[idx];
+          if (!row || Number(row.branch_stock || 0) <= 0) return;
+          addToCart(row);
+          hideLiveLookupResults();
+          var input = document.getElementById('barcodeInput');
+          if (input) { input.value = ''; input.focus(); }
+          status('Added: ' + (row.name || row.sku || 'item'), 'ok');
+        });
+      });
+    }
+
     async function addByBarcode(raw, options) {
       var opts = options || {};
       var barcode = normalizeBarcode(raw);
@@ -837,6 +920,18 @@
       return x.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
     }
 
+    function transactionProductsSummary(items) {
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) return '—';
+      var labels = list.map(function(i) {
+        var name = i && i.product_name_snapshot ? i.product_name_snapshot : 'Item';
+        var qty = Number(i && i.quantity || 0);
+        return name + (qty > 0 ? (' x' + qty) : '');
+      });
+      if (labels.length <= 2) return labels.join(', ');
+      return labels.slice(0, 2).join(', ') + ' +' + (labels.length - 2) + ' more';
+    }
+
     async function loadSalesToday() {
       if (!window.db || !assignedLocationId) return;
       var res = await window.db.rpc('get_store_sales_today_v1', { p_location_id: assignedLocationId });
@@ -851,7 +946,14 @@
         return;
       }
       body.innerHTML = txns.map(function(t) {
-        return '<tr><td>' + esc(t.reference_no || '—') + '</td><td>' + Number(t.total_items || 0) + '</td><td>' + peso(t.total_amount || 0) + '</td><td>' + timeStr(t.created_at) + '</td></tr>';
+        var productsText = transactionProductsSummary(t.items);
+        var ref = t.reference_no || '—';
+        return '<tr>' +
+          '<td><div>' + esc(productsText) + '</div><div class="sd-mini">Ref: ' + esc(ref) + '</div></td>' +
+          '<td>' + Number(t.total_items || 0) + '</td>' +
+          '<td>' + peso(t.total_amount || 0) + '</td>' +
+          '<td>' + timeStr(t.created_at) + '</td>' +
+        '</tr>';
       }).join('');
     }
 
@@ -881,8 +983,27 @@
         // #endregion
         input.value = '';
         input.focus();
+        hideLiveLookupResults();
         enqueueBarcodeLookup(barcodeNow);
       }
+    });
+    document.getElementById('barcodeInput').addEventListener('input', function(e) {
+      var q = normalizeBarcode(e.target && e.target.value);
+      if (liveLookupTimer) clearTimeout(liveLookupTimer);
+      if (!q) {
+        hideLiveLookupResults();
+        return;
+      }
+      liveLookupTimer = setTimeout(function() {
+        fetchLiveLookupRows(q).then(function(rows) {
+          renderLiveLookupResults(rows);
+        }).catch(function() {
+          hideLiveLookupResults();
+        });
+      }, 220);
+    });
+    document.getElementById('barcodeInput').addEventListener('blur', function() {
+      setTimeout(hideLiveLookupResults, 180);
     });
     document.getElementById('btnClearCart').addEventListener('click', function() {
       clearCart();

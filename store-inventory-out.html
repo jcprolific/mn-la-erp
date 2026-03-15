@@ -223,7 +223,7 @@
     }
     var locId = window.Session.locationId();
     var candidates = [];
-    var byBarcodeRes = await window.db.from('products').select('id, sku, name, barcode').eq('barcode', q).limit(8);
+    var byBarcodeRes = await window.db.from('products').select('id, sku, name, barcode').eq('barcode', q).limit(100);
     if (!byBarcodeRes.error && Array.isArray(byBarcodeRes.data) && byBarcodeRes.data.length) {
       candidates = byBarcodeRes.data;
     } else {
@@ -232,7 +232,7 @@
         .from('products')
         .select('id, sku, name, barcode')
         .or('name.ilike.%' + safeQ + '%,sku.ilike.%' + safeQ + '%,barcode.ilike.%' + safeQ + '%')
-        .limit(8);
+        .limit(100);
       if (bySearchRes.error) {
         if (window.Auth.toast) window.Auth.toast(bySearchRes.error.message || 'Search failed', 'error');
         return;

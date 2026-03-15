@@ -55,10 +55,14 @@
     .sd-list-remove:hover { color: #a07878; }
     .sd-list-empty { padding: 24px; text-align: center; color: var(--text-muted); font-size: .9rem; }
     .sd-submit-row { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.06); }
-    .sd-search-results { margin-top: 8px; max-height: 200px; overflow-y: auto; background: var(--bg-primary); border: 1px solid rgba(255,255,255,.08); border-radius: 9px; }
-    .sd-search-item { padding: 10px 12px; cursor: pointer; font-size: .85rem; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .sd-search-results { margin-top: 8px; max-height: 260px; overflow-y: auto; background: var(--bg-primary); border: 1px solid rgba(255,255,255,.08); border-radius: 9px; }
+    .sd-search-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding: 10px 12px; font-size: .85rem; border-bottom: 1px solid rgba(255,255,255,.04); }
     .sd-search-item:hover { background: rgba(255,255,255,.06); }
     .sd-search-item:last-child { border-bottom: none; }
+    .sd-search-item__name { font-weight: 600; color: var(--text-primary); }
+    .sd-search-item__meta { margin-top: 3px; font-size: .78rem; color: var(--text-muted); }
+    .sd-search-pick { padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(122,159,196,.35); background: rgba(122,159,196,.14); color: #aac8e8; font-size: .78rem; font-weight: 600; cursor: pointer; }
+    .sd-search-pick:disabled { opacity: .55; cursor: not-allowed; }
     .sd-toast-ok { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 24px; background: rgba(52,211,153,.15); border: 1px solid rgba(52,211,153,.4); color: #34d399; border-radius: 12px; font-weight: 600; z-index: 2000; }
     .sd-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
     .sd-modal { background: var(--bg-card); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; max-width: 440px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
@@ -531,12 +535,15 @@
   async function searchProducts(q) {
     if (!q || !window.db) return [];
     q = q.trim();
-    if (q.length < 2) return [];
-    var part = 'name.ilike.%' + q + '%,sku.ilike.%' + q + '%,barcode.ilike.%' + q + '%';
-    var { data } = await window.db
+    if (q.length < 1) return [];
+    var safe = q.replace(/[%_]/g, '');
+    var part = 'name.ilike.%' + safe + '%,sku.ilike.%' + safe + '%,barcode.ilike.%' + safe + '%';
+    var { data, error } = await window.db
       .from('products')
       .select('id, sku, name, barcode, size, color, catalog_source, shopify_variant_id, shopify_last_synced_at')
-      .or(part);
+      .or(part)
+      .limit(12);
+    if (error) return [];
     var rows = data || [];
     rows.sort(function(a, b) {
       function score(item) {
@@ -1017,7 +1024,7 @@
   if (searchInput) searchInput.addEventListener('input', function() {
     var q = (searchInput.value || '').trim();
     clearTimeout(searchTimeout);
-    if (q.length < 2) {
+    if (q.length < 1) {
       searchResults.style.display = 'none';
       searchResults.innerHTML = '';
       return;
@@ -1027,33 +1034,59 @@
         if (products.length === 0) {
           searchResults.innerHTML = '<div class="sd-search-item">No products found.</div>';
         } else {
-          searchResults.innerHTML = products.slice(0, 10).map(function(p) {
-            var displayName = sanitizeProductDisplayName(p.name || p.sku || '');
-            var barcode = (p.barcode != null && p.barcode !== '') ? escapeHtml(p.barcode) : escapeHtml(p.sku || '');
-            var sizeStr = (p.size != null && String(p.size).trim() !== '') ? String(p.size).trim() : '';
-            var colorStr = (p.color != null && String(p.color).trim() !== '') ? String(p.color).trim() : '';
-            var extra = [sizeStr, colorStr].filter(Boolean).join(' · ');
-            var label = escapeHtml(displayName || p.sku || '') + (extra ? ' <span style="color:var(--text-muted);">— ' + escapeHtml(extra) + '</span>' : '') + ' <span style="color:var(--text-muted);">' + escapeHtml(p.sku) + '</span>';
-            return '<div class="sd-search-item" data-id="' + p.id + '" data-name="' + escapeHtml(displayName) + '" data-sku="' + escapeHtml(p.sku || '') + '" data-barcode="' + barcode + '" data-size="' + escapeHtml(p.size || '') + '" data-color="' + escapeHtml(p.color || '') + '">' + label + '</div>';
-          }).join('');
-          searchResults.querySelectorAll('.sd-search-item[data-id]').forEach(function(el) {
-            el.addEventListener('click', function() {
-              var p = { id: el.dataset.id, name: el.dataset.name, sku: el.dataset.sku, barcode: el.dataset.barcode || el.dataset.sku, size: el.dataset.size || '—', color: el.dataset.color || '—' };
-              addToList(p).then(function() {
-                searchInput.value = '';
-                searchResults.style.display = 'none';
-                searchResults.innerHTML = '';
-                if (barcodeInput) barcodeInput.focus();
+          Promise.all(products.slice(0, 10).map(async function(p) {
+            var stock = await getBranchStock(p.id);
+            return { product: p, stock: Number(stock || 0) };
+          })).then(function(rows) {
+            searchResults.innerHTML = rows.map(function(row, idx) {
+              var p = row.product;
+              var stock = row.stock;
+              var displayName = sanitizeProductDisplayName(p.name || p.sku || '');
+              var barcode = (p.barcode != null && p.barcode !== '') ? String(p.barcode) : String(p.sku || '');
+              var sizeStr = (p.size != null && String(p.size).trim() !== '') ? String(p.size).trim() : '';
+              var colorStr = (p.color != null && String(p.color).trim() !== '') ? String(p.color).trim() : '';
+              var meta = 'SKU: ' + (p.sku || '—') + (sizeStr || colorStr ? ' • ' + [sizeStr, colorStr].filter(Boolean).join(' / ') : '') + ' • Branch stock: ' + stock;
+              var disabled = stock <= 0 ? 'disabled' : '';
+              var btnLabel = stock > 0 ? 'Add' : 'No stock';
+              return '' +
+                '<div class="sd-search-item" data-row="' + idx + '">' +
+                  '<div>' +
+                    '<div class="sd-search-item__name">' + escapeHtml(displayName || p.sku || '') + '</div>' +
+                    '<div class="sd-search-item__meta">' + escapeHtml(meta) + '</div>' +
+                  '</div>' +
+                  '<button type="button" class="sd-search-pick" data-pick="' + idx + '" data-id="' + p.id + '" data-name="' + escapeHtml(displayName) + '" data-sku="' + escapeHtml(p.sku || '') + '" data-barcode="' + escapeHtml(barcode) + '" data-size="' + escapeHtml(p.size || '') + '" data-color="' + escapeHtml(p.color || '') + '" ' + disabled + '>' + btnLabel + '</button>' +
+                '</div>';
+            }).join('');
+            searchResults.querySelectorAll('.sd-search-pick[data-id]').forEach(function(el) {
+              el.addEventListener('click', function() {
+                if (el.disabled) return;
+                var p = { id: el.dataset.id, name: el.dataset.name, sku: el.dataset.sku, barcode: el.dataset.barcode || el.dataset.sku, size: el.dataset.size || '—', color: el.dataset.color || '—' };
+                addToList(p).then(function() {
+                  searchInput.value = '';
+                  searchResults.style.display = 'none';
+                  searchResults.innerHTML = '';
+                  if (barcodeInput) barcodeInput.focus();
+                });
               });
             });
+            searchResults.style.display = 'block';
+          }).catch(function() {
+            searchResults.innerHTML = '<div class="sd-search-item">Search failed. Please try again.</div>';
+            searchResults.style.display = 'block';
           });
+          return;
         }
         searchResults.style.display = 'block';
       });
-    }, 250);
+    }, 220);
+  });
+  if (searchInput) searchInput.addEventListener('focus', function() {
+    var q = (searchInput.value || '').trim();
+    if (!q) return;
+    searchInput.dispatchEvent(new Event('input'));
   });
   if (searchInput) searchInput.addEventListener('blur', function() {
-    setTimeout(function() { if (searchResults) searchResults.style.display = 'none'; }, 200);
+    setTimeout(function() { if (searchResults) searchResults.style.display = 'none'; }, 220);
   });
 
   var isSaving = false;
