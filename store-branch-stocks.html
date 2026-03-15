@@ -425,13 +425,15 @@
       if (window.Auth.toast) window.Auth.toast('Missing branch for this row.', 'error');
       return;
     }
+    // #region agent log
+    var rpcParams = { p_product_id: row.product_id, p_location_id: locationId, p_counted_quantity: newQty, p_reason: reason };
+    try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5515ed'},body:JSON.stringify({sessionId:'5515ed',location:'store-branch-stocks.html:saveAdjust',message:'before rpc',data:{params:rpcParams,hasProductId:!!row.product_id,hasLocationId:!!locationId,newQty:newQty},timestamp:Date.now(),hypothesisId:'H1'})}).catch(function(){}); } catch (_) {}
+    // #endregion
     try {
-      var res = await window.db.rpc('set_inventory_count', {
-        p_product_id: row.product_id,
-        p_location_id: locationId,
-        p_counted_quantity: newQty,
-        p_reason: reason
-      });
+      var res = await window.db.rpc('set_inventory_count', rpcParams);
+      // #region agent log
+      try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5515ed'},body:JSON.stringify({sessionId:'5515ed',location:'store-branch-stocks.html:saveAdjust',message:'after rpc',data:{hasError:!!res.error,errorMsg:res.error?String(res.error.message):null,errorCode:res.error?res.error.code:null},timestamp:Date.now(),hypothesisId:'H2'})}).catch(function(){}); } catch (_) {}
+      // #endregion
       if (res.error) throw res.error;
       row.quantity = newQty;
       filterRows();
@@ -439,6 +441,9 @@
       closeAdjustModal();
       loadStocks();
     } catch (err) {
+      // #region agent log
+      try { fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5515ed'},body:JSON.stringify({sessionId:'5515ed',location:'store-branch-stocks.html:saveAdjust',message:'catch',data:{errMsg:String(err&&err.message||err),errName:err&&err.name},timestamp:Date.now(),hypothesisId:'H3'})}).catch(function(){}); } catch (_) {}
+      // #endregion
       if (window.Auth.toast) window.Auth.toast(err.message || 'Failed to set quantity.', 'error');
     }
   }

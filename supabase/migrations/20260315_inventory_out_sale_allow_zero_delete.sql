@@ -343,7 +343,7 @@ BEGIN
         THEN TRIM(p.color)
       ELSE NULL
     END AS size_snapshot,
-    COALESCE(r.unit_price, COALESCE(p.shopify_price, p.selling_price, 0)::numeric(12,2)) AS price,
+    COALESCE(r.unit_price, COALESCE(p.shopify_price, 0)::numeric(12,2)) AS price,
     r.quantity
   FROM tmp_sale_lines_raw r
   JOIN public.products p
