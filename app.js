@@ -52,7 +52,7 @@
     },
     {
       id: 'module-inventory',
-      label: 'Inventory & Warehouse',
+      label: 'Inventory',
       icon: 'inventory_2',
       url: 'inventory.html',
       allowedRoles: ['owner', 'admin', 'warehouse_staff', 'store_associate'],
@@ -327,6 +327,34 @@
     } catch (_) {}
   }
 
+  /* ---------- INVENTORY CARD SUMMARY (store product counts) ---------- */
+  async function updateInventoryCardSummary() {
+    const userRole = window.Auth?.profile?.role;
+    if (!['owner', 'admin', 'warehouse_staff', 'store_associate'].includes(userRole)) return;
+    const card = document.getElementById('module-inventory');
+    if (!card || !window.db) return;
+    try {
+      const { data, error } = await window.db.rpc('get_all_stores_branch_stock_counts');
+      if (!error && data && Array.isArray(data)) {
+        const total = data.reduce((sum, r) => sum + (Number(r.branch_stock_count) || 0), 0);
+        const storeCount = data.length;
+        const sub = card.querySelector('.module-card__sub');
+        if (sub) {
+          sub.textContent = `${total.toLocaleString()} units across ${storeCount} store${storeCount !== 1 ? 's' : ''}`;
+        }
+      } else {
+        var locsRes = await window.db.from('locations').select('id').eq('type', 'store');
+        var invRes = await window.db.from('inventory').select('quantity');
+        if (!locsRes.error && !invRes.error && invRes.data) {
+          const total = invRes.data.reduce((s, r) => s + (r.quantity || 0), 0);
+          const storeCount = (locsRes.data || []).length;
+          const sub = card.querySelector('.module-card__sub');
+          if (sub) sub.textContent = `${total.toLocaleString()} units across ${storeCount} store${storeCount !== 1 ? 's' : ''}`;
+        }
+      }
+    } catch (_) {}
+  }
+
   /* ---------- INIT ---------- */
   async function initDashboard() {
     if (window.Auth && window.Auth.guard) {
@@ -338,6 +366,7 @@
     renderPendingActions();
     updateNavBadge();
     updateWarehouseCardSummary();
+    updateInventoryCardSummary();
   }
 
   setTimeout(initDashboard, 50);

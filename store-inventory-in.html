@@ -350,11 +350,6 @@
               if (branchNameEl) branchNameEl.textContent = res.data[0].name || assignedLocationId;
             }
             if (badge) badge.style.display = 'inline-flex';
-            // #region agent log
-            try {
-              fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5a364e'},body:JSON.stringify({sessionId:'5a364e',location:'store-inventory-in.html:guard owner',message:'Inventory In assignedLocationId',data:{assignedLocationId: assignedLocationId || null, fromSaved: validSaved, savedStoreId: savedStoreId || null},timestamp:Date.now(),hypothesisId:'H1'})}).catch(function(){});
-            } catch (_) {}
-            // #endregion
           }
         } catch (_) {}
       }
@@ -584,11 +579,9 @@
     console.warn('Barcode input element not found on page');
   } else {
     barcodeInput.addEventListener('focus', function() {
-      console.log('Barcode input focused');
       setBarcodeStatus(true);
     });
     barcodeInput.addEventListener('blur', function() {
-      console.log('Barcode input blurred');
       setBarcodeStatus(false);
     });
     /* No auto-scan on input: user can take as long as they want; trigger only via Enter or Search button. */
@@ -1078,7 +1071,7 @@
         }
         searchResults.style.display = 'block';
       });
-    }, 220);
+    }, 100);
   });
   if (searchInput) searchInput.addEventListener('focus', function() {
     var q = (searchInput.value || '').trim();
@@ -1086,7 +1079,14 @@
     searchInput.dispatchEvent(new Event('input'));
   });
   if (searchInput) searchInput.addEventListener('blur', function() {
-    setTimeout(function() { if (searchResults) searchResults.style.display = 'none'; }, 220);
+    setTimeout(function() { if (searchResults) searchResults.style.display = 'none'; }, 100);
+  });
+
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+      if (searchTimeout) { clearTimeout(searchTimeout); searchTimeout = null; }
+      if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+    }
   });
 
   var isSaving = false;
@@ -1165,7 +1165,7 @@
       return;
     }
     if (formEl && formEl.style.display !== 'none') {
-      setTimeout(function() { b.focus(); console.log('Programmatic focus: barcode input'); }, 0);
+      setTimeout(function() { b.focus(); }, 0);
       setTimeout(function() { b.focus(); }, 150);
     }
   });

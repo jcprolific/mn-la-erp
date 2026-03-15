@@ -270,6 +270,119 @@
     }
 
     /**
+     * Load and render Branch Stock Count by Store section (owner/admin only).
+     * Uses get_all_stores_branch_stock_counts RPC; falls back to client-side aggregate if RPC fails.
+     */
+    async function loadAllStoresBranchStockCounts() {
+        const loadingEl = document.getElementById('sdBranchStocksLoading');
+        const itemsEl = document.getElementById('sdBranchStocksItems');
+        const containerEl = document.getElementById('sdBranchStocksByStore');
+        // #region agent log
+        try {
+            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'755ff3'},body:JSON.stringify({sessionId:'755ff3',location:'store.js:loadAllStoresBranchStockCounts',message:'entry',data:{hasDb:!!window.db,hasContainer:!!containerEl,containerDisplay:containerEl?window.getComputedStyle(containerEl).display:'n/a'},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
+        if (!window.db || !containerEl) return;
+        if (loadingEl) loadingEl.style.display = '';
+        if (itemsEl) itemsEl.style.display = 'none';
+
+        function renderRows(rows) {
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (!itemsEl) return;
+            // #region agent log
+            try {
+                var totalAll = rows.reduce(function(s,r){ return s + (typeof r.branch_stock_count==='number'?r.branch_stock_count:(parseInt(r.branch_stock_count,10)||0)); }, 0);
+                fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'755ff3'},body:JSON.stringify({sessionId:'755ff3',location:'store.js:renderRows',message:'render',data:{rowCount:rows.length,totalAll:totalAll,state:rows.length===0?'empty':'hasRows'},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+            } catch (_) {}
+            // #endregion
+            if (rows.length === 0) {
+                itemsEl.innerHTML = '<div class="sd-branch-stocks-empty">No stores found.</div>';
+            } else {
+                var totalAll = 0;
+                var html = rows.map(function (r) {
+                    const count = typeof r.branch_stock_count === 'number' ? r.branch_stock_count : (parseInt(r.branch_stock_count, 10) || 0);
+                    totalAll += count;
+                    const name = (r.name || r.location_id || '—').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    const locId = (r.location_id || '').replace(/"/g, '&quot;');
+                    const viewHref = 'store-branch-stocks.html#view=all';
+                    return '<div class="sd-branch-stocks-row"><span class="sd-branch-stocks-name">' + name + '</span><span class="sd-branch-stocks-count">' + count.toLocaleString() + '</span><a href="' + viewHref + '" class="sd-branch-stocks-view" data-location-id="' + locId + '">View</a></div>';
+                }).join('');
+                html += '<div class="sd-branch-stocks-row sd-branch-stocks-row--total"><span class="sd-branch-stocks-name">Total (All Stores)</span><span class="sd-branch-stocks-count">' + totalAll.toLocaleString() + '</span><a href="store-branch-stocks.html#view=all" class="sd-branch-stocks-view">View All</a></div>';
+                itemsEl.innerHTML = html;
+                itemsEl.querySelectorAll('.sd-branch-stocks-view').forEach(function (a) {
+                    a.addEventListener('click', function (e) {
+                        const locId = a.getAttribute('data-location-id');
+                        if (locId && typeof localStorage !== 'undefined') {
+                            localStorage.setItem(STORE_DASHBOARD_LOCATION_KEY, locId);
+                        }
+                    });
+                });
+                var totalHeader = document.getElementById('sdBranchStocksTotal');
+                var totalWrap = document.getElementById('sdBranchStocksTotalWrap');
+                if (totalHeader) totalHeader.textContent = totalAll.toLocaleString();
+                if (totalWrap) totalWrap.style.display = '';
+            }
+            itemsEl.style.display = '';
+        }
+
+        try {
+            const { data, error } = await window.db.rpc('get_all_stores_branch_stock_counts');
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'755ff3'},body:JSON.stringify({sessionId:'755ff3',location:'store.js:loadAllStoresBranchStockCounts',message:'rpc result',data:{rpcError:!!error,rpcErrorMsg:error?String(error.message):null,hasData:data!=null,rowCount:Array.isArray(data)?data.length:(data?1:0)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+            } catch (_) {}
+            // #endregion
+            if (!error && data != null) {
+                var rows = Array.isArray(data) ? data : (typeof data === 'string' ? JSON.parse(data) : []);
+                if (!Array.isArray(rows)) rows = [];
+                renderRows(rows);
+                return;
+            }
+        } catch (e) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'755ff3'},body:JSON.stringify({sessionId:'755ff3',location:'store.js:loadAllStoresBranchStockCounts',message:'rpc catch',data:{err:String(e&&e.message)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+            } catch (_) {}
+            // #endregion
+        }
+
+        try {
+            var locsRes = await window.db.from('locations').select('id, name').eq('type', 'store').order('name');
+            if (locsRes.error || !locsRes.data || !locsRes.data.length) {
+                renderRows([]);
+                return;
+            }
+            var invRes = await window.db.from('inventory').select('location_id, quantity');
+            var sums = {};
+            (invRes.data || []).forEach(function (row) {
+                var lid = row.location_id;
+                if (lid) sums[lid] = (sums[lid] || 0) + (row.quantity || 0);
+            });
+            var rows = locsRes.data.map(function (loc) {
+                return { location_id: loc.id, name: loc.name, branch_stock_count: sums[loc.id] || 0 };
+            });
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'755ff3'},body:JSON.stringify({sessionId:'755ff3',location:'store.js:loadAllStoresBranchStockCounts',message:'fallback success',data:{rowCount:rows.length},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+            } catch (_) {}
+            // #endregion
+            renderRows(rows);
+        } catch (e) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'755ff3'},body:JSON.stringify({sessionId:'755ff3',location:'store.js:loadAllStoresBranchStockCounts',message:'fallback catch',data:{err:String(e&&e.message)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+            } catch (_) {}
+            // #endregion
+            console.warn('[Store] loadAllStoresBranchStockCounts failed:', e);
+            if (loadingEl) loadingEl.textContent = '—';
+            if (itemsEl) {
+                itemsEl.innerHTML = '<div class="sd-branch-stocks-empty">Unable to load.</div>';
+                itemsEl.style.display = '';
+            }
+        }
+    }
+
+    /**
      * Populate store selector from public.locations (type=store) and load real inventory for selected branch.
      * Store associate: always use their assigned location_id and name from Session (never first store in list).
      * Owner/admin: can switch store to see any branch's dashboard and real branch stocks.
@@ -303,8 +416,10 @@
                 storeInventory = [];
                 renderMetrics();
                 renderProductGrid();
+                loadAllStoresBranchStockCounts().catch(function (e) { console.warn('[Store] loadAllStoresBranchStockCounts:', e); });
                 return;
             }
+            loadAllStoresBranchStockCounts().catch(function (e) { console.warn('[Store] loadAllStoresBranchStockCounts:', e); });
             if (storeSel) {
                 storeSel.innerHTML = locations.map(loc => `<option value="${loc.id}">${loc.name || loc.id}</option>`).join('');
             }
@@ -571,6 +686,13 @@
         if (window.Auth && typeof window.Auth.guard === 'function') {
             await window.Auth.guard();
         }
+        // #region agent log
+        try {
+            var isSA = !!(window.Permissions && window.Permissions.isStoreAssociate());
+            var profRole = (window.Auth && window.Auth.profile && window.Auth.profile.role) || '?';
+            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'755ff3'},body:JSON.stringify({sessionId:'755ff3',location:'store.js:init',message:'init role check',data:{isStoreAssociate:isSA,profileRole:profRole,willCallLoadAllStores:!isSA},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
         if (window.Permissions && window.Permissions.isStoreAssociate() && window.Session && window.Session.locationId()) {
             currentStoreId = window.Session.locationId();
             const fullName = window.Session.locationName() || 'My Branch';

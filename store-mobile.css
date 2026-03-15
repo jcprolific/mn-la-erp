@@ -200,7 +200,7 @@
   .sd-barcode-input-wrap .sd-barcode-input {
     width: 100%;
     min-height: 48px;
-    font-size: 1rem;
+    font-size: 16px;
     box-sizing: border-box;
   }
   .sd-barcode-search-btn {
@@ -260,11 +260,13 @@
     min-height: 52px;
     font-size: 1rem;
     justify-content: center;
+    touch-action: manipulation;
   }
   .sd-branch-badge { padding: 12px 16px; font-size: 0.9rem; }
   .sd-card { padding: 16px; margin-bottom: 16px; }
   .sd-page-title { font-size: 1.25rem; }
   .sd-form-group { margin-bottom: 14px; }
+  .sd-search-row input { font-size: 16px; min-height: 44px; }
 
   /* ---------- Branch Stocks: scrollable table + wrap toolbar ---------- */
   .sd-toolbar {
@@ -355,5 +357,10 @@
   }
   .sd-btn-primary, .sd-action-btn, .sd-barcode-quick__link {
     min-height: 48px;
+    touch-action: manipulation;
+  }
+  .sd-btn, .sd-cart-actions .sd-btn, .sd-search-pick, .sd-live-pick {
+    min-height: 44px;
+    touch-action: manipulation;
   }
 }

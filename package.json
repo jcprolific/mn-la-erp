@@ -13,6 +13,8 @@
     "shopify:sync-catalog:active-only:dry-run": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --dry-run --only-active",
     "shopify:sync-catalog:incremental": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --only-active --updated-since-hours 2",
     "shopify:sync-catalog:incremental:dry-run": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --dry-run --only-active --updated-since-hours 2",
+    "shopify:sync-newly-updated": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --only-active --updated-since-hours 24",
+    "shopify:sync-newly-updated:dry-run": "node scripts/shopify/sync-shopify-catalog-to-supabase.js --dry-run --only-active --updated-since-hours 24",
     "shopify:barcode-conflicts": "node scripts/shopify/generate-duplicate-barcode-report.js",
     "shopify:barcode-cleanup-plan": "node scripts/shopify/generate-barcode-cleanup-plan.js",
     "shopify:barcode-cleanup-queue": "node scripts/shopify/generate-barcode-cleanup-queue.js",

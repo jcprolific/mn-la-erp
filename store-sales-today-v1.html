@@ -246,6 +246,8 @@
     var isBarcodeLookupInFlight = false;
     var barcodeLookupQueue = [];
     var BARCODE_CACHE_TTL_MS = 5 * 60 * 1000;
+    var BARCODE_CACHE_MAX_KEYS = 200;
+    var BARCODE_CACHE_EVICT_COUNT = 50;
     var liveLookupTimer = null;
 
     function esc(v) { var d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML; }
@@ -263,49 +265,24 @@
     async function drainBarcodeLookupQueue() {
       if (isBarcodeLookupInFlight) return;
       isBarcodeLookupInFlight = true;
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H6',location:'store-sales-today-v1.html:drainBarcodeLookupQueue:start',message:'queue drain started',data:{queueLength:barcodeLookupQueue.length,inFlight:isBarcodeLookupInFlight},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
       try {
         while (barcodeLookupQueue.length) {
           var nextBarcode = barcodeLookupQueue.shift();
           if (!nextBarcode) continue;
-          // #region agent log
-          try {
-            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H7',location:'store-sales-today-v1.html:drainBarcodeLookupQueue:item',message:'processing queued barcode',data:{barcode:nextBarcode,remainingQueue:barcodeLookupQueue.length},timestamp:Date.now()})}).catch(()=>{});
-          } catch (_) {}
-          // #endregion
           try {
             await addByLookupInput(nextBarcode);
           } catch (e) {
             status((e && e.message) ? e.message : 'Barcode lookup failed.', 'error');
-            // #region agent log
-            try {
-              fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-2',hypothesisId:'H10',location:'store-sales-today-v1.html:drainBarcodeLookupQueue:itemError',message:'queued barcode processing failed but drain continues',data:{barcode:nextBarcode,error:(e&&e.message)||String(e),remainingQueue:barcodeLookupQueue.length},timestamp:Date.now()})}).catch(()=>{});
-            } catch (_) {}
-            // #endregion
           }
         }
       } finally {
         isBarcodeLookupInFlight = false;
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H6',location:'store-sales-today-v1.html:drainBarcodeLookupQueue:end',message:'queue drain ended',data:{queueLength:barcodeLookupQueue.length,inFlight:isBarcodeLookupInFlight},timestamp:Date.now()})}).catch(()=>{});
-        } catch (_) {}
-        // #endregion
       }
     }
     function enqueueBarcodeLookup(raw) {
       var barcode = normalizeBarcode(raw);
       if (!barcode) return;
       barcodeLookupQueue.push(barcode);
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H8',location:'store-sales-today-v1.html:enqueueBarcodeLookup',message:'barcode enqueued',data:{barcode:barcode,queueLength:barcodeLookupQueue.length,inFlight:isBarcodeLookupInFlight},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
       drainBarcodeLookupQueue();
     }
     function normalizeBarcode(raw) {
@@ -362,6 +339,14 @@
       var key = normalizeBarcode(barcode);
       if (!key) return;
       barcodeLookupCache.set(key, Array.isArray(rows) ? rows : []);
+      if (barcodeLookupCache.size > BARCODE_CACHE_MAX_KEYS) {
+        var evicted = 0;
+        for (var k of barcodeLookupCache.keys()) {
+          if (evicted >= BARCODE_CACHE_EVICT_COUNT) break;
+          barcodeLookupCache.delete(k);
+          evicted++;
+        }
+      }
     }
     function getCachedBarcodeRows(barcode) {
       var key = normalizeBarcode(barcode);
@@ -388,7 +373,8 @@
             .from('inventory')
             .select('quantity, products(id,sku,name,barcode,size,color,shopify_price,shopify_variant_id,shopify_inventory_item_id,barcode_status,scanner_enabled,created_at)')
             .eq('location_id', assignedLocationId)
-            .gt('quantity', 0);
+            .gt('quantity', 0)
+            .limit(300);
           if (invRes.error) throw invRes.error;
           barcodeLookupCache.clear();
           var rows = Array.isArray(invRes.data) ? invRes.data : [];
@@ -406,17 +392,7 @@
             setCachedBarcodeRows(key, applyMatchCount(getCachedBarcodeRows(key)));
           });
           barcodeCacheLoadedAt = Date.now();
-          // #region agent log
-          try {
-            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H2',location:'store-sales-today-v1.html:preloadBarcodeCacheForLocation:done',message:'barcode cache preload completed',data:{force:!!force,assignedLocationId:assignedLocationId,inventoryRows:rows.length,cacheKeys:barcodeLookupCache.size,duration_ms:Date.now()-preloadStartedAt},timestamp:Date.now()})}).catch(()=>{});
-          } catch (_) {}
-          // #endregion
         } catch (e) {
-          // #region agent log
-          try {
-            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H2',location:'store-sales-today-v1.html:preloadBarcodeCacheForLocation:error',message:'barcode cache preload failed',data:{force:!!force,assignedLocationId:assignedLocationId,error:(e&&e.message)||String(e)},timestamp:Date.now()})}).catch(()=>{});
-          } catch (_) {}
-          // #endregion
           throw e;
         } finally {
           barcodeCacheLoading = null;
@@ -426,11 +402,6 @@
     }
     async function resolveBarcodeRowsFromSource(barcode) {
       var cachedRows = getCachedBarcodeRows(barcode);
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H3',location:'store-sales-today-v1.html:resolveBarcodeRowsFromSource',message:'cache lookup evaluated',data:{barcode:barcode,cachedRows:cachedRows.length},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
       if (cachedRows.length) {
         return { rows: cachedRows, source: 'cache' };
       }
@@ -734,11 +705,13 @@
         var stock = Number(r.branch_stock || 0);
         var disabled = stock <= 0 ? 'disabled' : '';
         var action = stock > 0 ? 'Add' : 'No stock';
+        var price = resolveUnitPrice(r);
+        var priceStr = Number.isFinite(price) ? peso(price) : '—';
         return '' +
           '<div class="sd-live-item">' +
             '<div>' +
               '<div class="sd-live-item__name">' + esc(r.name || r.sku || 'Unnamed product') + '</div>' +
-              '<div class="sd-live-item__meta">SKU: ' + esc(r.sku || '—') + ' • Branch stock: ' + stock + '</div>' +
+              '<div class="sd-live-item__meta">SKU: ' + esc(r.sku || '—') + ' • ' + priceStr + ' • Stock: ' + stock + '</div>' +
             '</div>' +
             '<button type="button" class="sd-live-pick" data-pick="' + idx + '" ' + disabled + '>' + action + '</button>' +
           '</div>';
@@ -762,22 +735,12 @@
       var barcode = normalizeBarcode(raw);
       if (!barcode || !window.db) return false;
       var startedAt = Date.now();
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'pre-fix',hypothesisId:'H1',location:'store-sales-today-v1.html:addByBarcode:start',message:'barcode lookup started',data:{barcode:barcode,assignedLocationId:assignedLocationId||null,cartLines:cart.length},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
       status('Resolving barcode…');
       renderResolver([], '');
       preloadBarcodeCacheForLocation(false);
       var source = await resolveBarcodeRowsFromSource(barcode);
       var rows = source.rows;
       if (!rows || !rows.length) {
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'post-fix',hypothesisId:'H1',location:'store-sales-today-v1.html:addByBarcode:rpcCall',message:'calling get_product_by_barcode',data:{barcode:barcode},timestamp:Date.now()})}).catch(()=>{});
-        } catch (_) {}
-        // #endregion
         var res = null;
         try {
           var rpcBuilder = window.db.rpc('get_product_by_barcode', { p_barcode: barcode });
@@ -786,11 +749,6 @@
           }
           res = await rpcBuilder;
         } catch (rpcErr) {
-          // #region agent log
-          try {
-            fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-2',hypothesisId:'H11',location:'store-sales-today-v1.html:addByBarcode:rpcException',message:'barcode rpc threw exception',data:{barcode:barcode,error:(rpcErr&&rpcErr.message)||String(rpcErr)},timestamp:Date.now()})}).catch(()=>{});
-          } catch (_) {}
-          // #endregion
           try {
             await preloadBarcodeCacheForLocation(true);
           } catch (_) {}
@@ -801,12 +759,6 @@
           }
           res = { data: rows, error: null };
         }
-        // #region agent log
-        try {
-          var _rows = Array.isArray(res && res.data) ? res.data : (res && res.data ? [res.data] : []);
-          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'post-fix',hypothesisId:'H1',location:'store-sales-today-v1.html:addByBarcode:rpcDone',message:'barcode rpc completed',data:{barcode:barcode,duration_ms:Date.now()-startedAt,error:(res&&res.error&&res.error.message)||null,rowCount:_rows.length,productId:_rows[0]&&(_rows[0].product_id||_rows[0].id)},timestamp:Date.now()})}).catch(()=>{});
-        } catch (_) {}
-        // #endregion
         if (res.error) {
           status(res.error.message || 'Barcode lookup failed.', 'error');
           return;
@@ -821,19 +773,9 @@
           preloadBarcodeCacheForLocation(true);
         }
       }
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'pre-fix',hypothesisId:'H1',location:'store-sales-today-v1.html:addByBarcode:source',message:'barcode source selected',data:{barcode:barcode,source:rows&&rows.length&&source.source==='cache'?'cache':'rpc',duration_ms:Date.now()-startedAt,rowCount:(rows&&rows.length)||0},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
       rows = applyMatchCount(rows);
       setCachedBarcodeRows(barcode, rows);
       if (!rows.length) {
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H5',location:'store-sales-today-v1.html:addByBarcode:notFound',message:'barcode ended as not found',data:{barcode:barcode,duration_ms:Date.now()-startedAt,source:source&&source.source?source.source:'unknown',assignedLocationId:assignedLocationId||null},timestamp:Date.now()})}).catch(()=>{});
-        } catch (_) {}
-        // #endregion
         if (opts.suppressNotFound) return false;
         status('Barcode not found in sellable catalog.', 'error');
         return true;
@@ -845,11 +787,6 @@
         return true;
       }
       var branchStock = await getBranchStock(chosenProductId);
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'post-fix',hypothesisId:'H4',location:'store-sales-today-v1.html:addByBarcode:branchStockGate',message:'evaluated branch stock before add',data:{barcode:barcode,productId:chosenProductId,branchStock:branchStock,locationId:assignedLocationId||null,source:source&&source.source?source.source:'unknown'},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
       if (!Number.isFinite(branchStock) || branchStock <= 0) {
         status('Product found, but no available stock for this branch.', 'error');
         return true;
@@ -859,11 +796,6 @@
       chosen.branch_stock = branchStock;
       addToCart(chosen);
       status('Added: ' + (chosen.name || chosen.sku || 'item'), 'ok');
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'multi-item-debug-1',hypothesisId:'H9',location:'store-sales-today-v1.html:addByBarcode:success',message:'barcode added to cart successfully',data:{barcode:barcode,productId:chosenProductId,cartLinesAfter:cart.length},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
       return true;
     }
 
@@ -988,11 +920,6 @@
         e.stopPropagation();
         var input = document.getElementById('barcodeInput');
         var barcodeNow = normalizeBarcode(input.value || '');
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'err-investigation-1',hypothesisId:'H1',location:'store-sales-today-v1.html:barcodeInput:keydownEnter',message:'enter detected on barcode input',data:{rawLength:(input.value||'').length,normalizedBarcode:barcodeNow||null},timestamp:Date.now()})}).catch(()=>{});
-        } catch (_) {}
-        // #endregion
         input.value = '';
         input.focus();
         hideLiveLookupResults();
@@ -1012,10 +939,10 @@
         }).catch(function() {
           hideLiveLookupResults();
         });
-      }, 220);
+      }, 100);
     });
     document.getElementById('barcodeInput').addEventListener('blur', function() {
-      setTimeout(hideLiveLookupResults, 180);
+      setTimeout(hideLiveLookupResults, 100);
     });
     document.getElementById('btnClearCart').addEventListener('click', function() {
       clearCart();
@@ -1023,6 +950,17 @@
       renderResolver([], '');
     });
     document.getElementById('btnConfirmSale').addEventListener('click', confirmSale);
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        if (liveLookupTimer) { clearTimeout(liveLookupTimer); liveLookupTimer = null; }
+        barcodeLookupCache.clear();
+        barcodeCacheLoadedAt = 0;
+        barcodeLookupQueue.length = 0;
+      } else if (document.visibilityState === 'visible') {
+        preloadBarcodeCacheForLocation(false).catch(function() {});
+      }
+    });
 
     (function() {
       function closeDrawer() {
@@ -1049,15 +987,10 @@
 
     guard().then(async function(ok) {
       if (!ok) return;
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'pre-fix',hypothesisId:'H4',location:'store-sales-today-v1.html:init',message:'scanner capability snapshot',data:{hasBarcodeDetector:typeof BarcodeDetector!=='undefined',hasMediaDevices:!!(navigator&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia),secureContext:!!window.isSecureContext,userAgent:navigator&&navigator.userAgent?navigator.userAgent.slice(0,120):''},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
       renderCart();
       loadSalesToday();
-      try { await preloadBarcodeCacheForLocation(false); } catch (_) {}
       document.getElementById('barcodeInput').focus();
+      preloadBarcodeCacheForLocation(false).catch(function() {});
     });
   })();
   </script>

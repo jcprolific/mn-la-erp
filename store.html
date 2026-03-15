@@ -1104,6 +1104,48 @@
       letter-spacing: .06em;
     }
 
+    /* ── Branch Stock Count by Store (owner/admin) ── */
+    .sd-branch-stocks-by-store {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .sd-branch-stocks-by-store .sd-section-head { margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .sd-branch-stocks-by-store .sd-section-sub { font-size: .85rem; color: var(--text-muted); margin-left: auto; }
+    .sd-branch-stocks-by-store .sd-section-sub strong { color: #7a9fc4; }
+    .sd-branch-stocks-list { min-height: 24px; }
+    .sd-branch-stocks-loading { font-size: .85rem; color: var(--text-muted); }
+    .sd-branch-stocks-items { display: flex; flex-direction: column; gap: 8px; }
+    .sd-branch-stocks-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, .03);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, .04);
+    }
+    .sd-branch-stocks-row--total {
+      background: rgba(122, 159, 196, .15);
+      border-color: rgba(122, 159, 196, .3);
+      font-weight: 600;
+    }
+    .sd-branch-stocks-name { flex: 1; font-size: .9rem; font-weight: 600; color: var(--text-primary); }
+    .sd-branch-stocks-count { font-size: 1rem; font-weight: 700; color: #7a9fc4; min-width: 3em; text-align: right; }
+    .sd-branch-stocks-view {
+      font-size: .78rem;
+      font-weight: 600;
+      color: #7a9fc4;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(122, 159, 196, .12);
+      transition: background .15s, color .15s;
+    }
+    .sd-branch-stocks-view:hover { background: rgba(122, 159, 196, .25); color: #aac8e8; }
+    .sd-branch-stocks-empty { font-size: .85rem; color: var(--text-muted); padding: 12px 0; }
+
     .sd-stat--link {
       text-decoration: none;
       color: inherit;
@@ -1170,7 +1212,7 @@
           </div>
           <div class="dropdown-divider"></div>
           <a href="index.html" class="dropdown-item store-hide-for-associate" data-store-hide><span class="material-icons-round">home</span> Master Dashboard</a>
-          <a href="inventory.html" class="dropdown-item store-hide-for-associate" data-store-hide><span class="material-icons-round">warehouse</span> Inventory &amp; Warehouse</a>
+          <a href="inventory.html" class="dropdown-item store-hide-for-associate" data-store-hide><span class="material-icons-round">inventory_2</span> Inventory</a>
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item dropdown-item--danger" id="storeLogout" data-action="logout"><span class="material-icons-round">logout</span> Sign Out</a>
         </div>
@@ -1240,11 +1282,11 @@
         <div class="sd-stat__value" id="sdStatItemsSold">—</div>
         <div class="sd-stat__label">Items Sold Today</div>
       </div>
-      <a href="store-branch-stocks.html" id="sdStatCardBranchStock" class="sd-stat sd-stat--link" style="--sc:rgba(122,159,196,.9); --si:rgba(122,159,196,.1); --sic:#7a9fc4;" aria-label="Branch Stock Count – go to Branch Stocks page">
+      <div class="sd-stat" id="sdStatCardBranchStock" style="--sc:rgba(122,159,196,.9); --si:rgba(122,159,196,.1); --sic:#7a9fc4;" role="region" aria-label="Branch Stock Count – total inventory in this store">
         <div class="sd-stat__icon"><span class="material-icons-round">inventory_2</span></div>
         <div class="sd-stat__value" id="sdStatUnits">—</div>
         <div class="sd-stat__label">Branch Stock Count</div>
-      </a>
+      </div>
       <div class="sd-stat" style="--sc:rgba(168,147,92,.9); --si:rgba(168,147,92,.1); --sic:#a8935c;">
         <div class="sd-stat__icon"><span class="material-icons-round">warning_amber</span></div>
         <div class="sd-stat__value" id="sdStatLowStock">—</div>
@@ -1259,6 +1301,18 @@
         <div class="sd-stat__icon"><span class="material-icons-round">payments</span></div>
         <div class="sd-stat__value" id="sdStatCash">—</div>
         <div class="sd-stat__label">Cash Sales Today</div>
+      </div>
+    </div>
+
+    <!-- ── BRANCH STOCK COUNT BY STORE (owner/admin only; store associate sees only their branch in the card above) ── -->
+    <div class="sd-branch-stocks-by-store sd-hide-for-store-associate" id="sdBranchStocksByStore" style="margin-bottom:20px;">
+      <div class="sd-section-head">
+        <span class="sd-section-title">Branch Stock Count by Store</span>
+        <span class="sd-section-sub" id="sdBranchStocksTotalWrap" style="display:none;">Total: <strong id="sdBranchStocksTotal">0</strong> units</span>
+      </div>
+      <div class="sd-branch-stocks-list" id="sdBranchStocksList">
+        <div class="sd-branch-stocks-loading" id="sdBranchStocksLoading">Loading…</div>
+        <div class="sd-branch-stocks-items" id="sdBranchStocksItems" style="display:none;"></div>
       </div>
     </div>
 
@@ -1681,12 +1735,19 @@
         storeSelectWrap.title = 'Your assigned branch (read-only)';
         if (backLink) backLink.style.display = 'none';
         document.querySelectorAll('[data-store-hide]').forEach(function (el) { el.style.display = 'none'; });
+        document.querySelectorAll('.sd-hide-for-store-associate').forEach(function (el) { el.style.display = 'none'; });
         // Hide store location UI (selector + header) so store associate does not see branch name
         document.querySelectorAll('.sd-hide-store-location-for-associate').forEach(function (el) { el.style.display = 'none'; });
       } else {
         if (backLink) backLink.style.display = 'inline-flex';
         document.querySelectorAll('.sd-hide-for-store-associate').forEach(function (el) { el.style.display = ''; });
       }
+      // #region agent log
+      try {
+        var bc = document.getElementById('sdBranchStocksByStore');
+        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'755ff3'},body:JSON.stringify({sessionId:'755ff3',location:'store.html:profile',message:'visibility',data:{profileRole:profile.role,isStoreAssociate:profile.role==='store_associate',branchSectionDisplay:bc?window.getComputedStyle(bc).display:'n/a'},timestamp:Date.now(),hypothesisId:'H4'})}).catch(function(){});
+      } catch (_) {}
+      // #endregion
 
       if (window.StoreDashboard && window.StoreDashboard.setStoreFromSession) window.StoreDashboard.setStoreFromSession();
     })();
