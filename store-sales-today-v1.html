@@ -497,21 +497,24 @@
     }
 
     function addToCart(row) {
+      var maxQty = row.branch_stock != null ? Number(row.branch_stock) : null;
       var idx = cart.findIndex(function(x) { return x.product_id === row.product_id; });
-      if (idx >= 0) cart[idx].quantity += 1;
-      else cart.push({
-        product_id: row.product_id,
-        barcode: row.barcode || '',
-        name: row.name || row.product_name_snapshot || '—',
-        variant_label: row.variant_label || row.size || row.size_snapshot || '—',
-        price: resolveUnitPrice(row),
-        quantity: 1
-      });
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7263/ingest/d43589ba-66e5-4801-9f39-b68a05443d33',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bb13db'},body:JSON.stringify({sessionId:'bb13db',runId:'pre-fix',hypothesisId:'H3',location:'store-sales-today-v1.html:addToCart',message:'cart line added with resolved price',data:{product_id:row.product_id||null,barcode:row.barcode||null,resolved_price:row.resolved_price,final_price:Number(row.resolved_price != null ? row.resolved_price : row.price || 0),qty:idx>=0?cart[idx].quantity:1},timestamp:Date.now()})}).catch(()=>{});
-      } catch (_) {}
-      // #endregion
+      if (idx >= 0) {
+        var current = cart[idx].quantity || 1;
+        if (maxQty != null && current >= maxQty) return;
+        cart[idx].quantity = current + 1;
+        if (maxQty != null) cart[idx].branch_stock = maxQty;
+      } else {
+        cart.push({
+          product_id: row.product_id,
+          barcode: row.barcode || '',
+          name: row.name || row.product_name_snapshot || '—',
+          variant_label: row.variant_label || row.size || row.size_snapshot || '—',
+          price: resolveUnitPrice(row),
+          quantity: 1,
+          branch_stock: maxQty
+        });
+      }
       renderCart();
     }
 
@@ -542,7 +545,11 @@
 
     function setQty(i, delta) {
       if (!cart[i]) return;
-      cart[i].quantity = Math.max(1, (cart[i].quantity || 1) + delta);
+      var current = cart[i].quantity || 1;
+      var maxQty = cart[i].branch_stock != null ? Number(cart[i].branch_stock) : null;
+      var next = current + delta;
+      if (delta > 0 && maxQty != null && next > maxQty) next = maxQty;
+      cart[i].quantity = Math.max(1, next);
       renderCart();
     }
     function removeLine(i) { cart.splice(i, 1); renderCart(); }
@@ -561,12 +568,15 @@
         body.innerHTML = cart.map(function(r, i) {
           var priceValue = Number.isFinite(Number(r.price)) ? Number(r.price).toFixed(2) : '';
           var subtotal = lineSubtotal(r);
+          var qty = r.quantity || 1;
+          var maxQty = r.branch_stock != null ? Number(r.branch_stock) : null;
+          var incDisabled = maxQty != null && qty >= maxQty ? ' disabled' : '';
           return '<tr>' +
             '<td>' + esc(r.name) + '</td>' +
             '<td>' + esc(r.variant_label || '—') + '</td>' +
             '<td>' + esc(r.barcode || '—') + '</td>' +
             '<td><input type="number" min="0" step="0.01" class="sd-input sd-price-input' + (priceValue === '' ? ' sd-price-input--invalid' : '') + '" data-price-index="' + i + '" value="' + esc(priceValue) + '" /></td>' +
-            '<td><div class="sd-qty"><button class="sd-qty-btn" data-action="dec" data-index="' + i + '">-</button><span class="sd-qty-num">' + (r.quantity || 1) + '</span><button class="sd-qty-btn" data-action="inc" data-index="' + i + '">+</button></div></td>' +
+            '<td><div class="sd-qty"><button class="sd-qty-btn" data-action="dec" data-index="' + i + '">-</button><span class="sd-qty-num">' + qty + '</span><button class="sd-qty-btn" data-action="inc" data-index="' + i + '"' + incDisabled + '>+</button></div></td>' +
             '<td data-subtotal-index="' + i + '">' + peso(subtotal) + '</td>' +
             '<td><button class="sd-qty-btn" data-action="rm" data-index="' + i + '">x</button></td>' +
             '</tr>';
@@ -663,6 +673,7 @@
         var stock = await getBranchStock(pid);
         if (!Number.isFinite(stock) || stock <= 0) return null;
         r.product_id = pid;
+        r.branch_stock = stock;
         return r;
       }));
       var inStockRows = checks.filter(Boolean);
@@ -845,6 +856,7 @@
       }
       chosen.product_id = chosenProductId;
       chosen.scanner_enabled = true;
+      chosen.branch_stock = branchStock;
       addToCart(chosen);
       status('Added: ' + (chosen.name || chosen.sku || 'item'), 'ok');
       // #region agent log
